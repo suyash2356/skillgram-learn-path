@@ -164,11 +164,11 @@ const Explore = () => {
           <h1 className="text-4xl font-bold mb-4">
             Explore{" "}
             <span className="bg-gradient-primary bg-clip-text text-transparent">
-              Skills & Knowledge
+              Trending Content
             </span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Discover new skills, trending technologies, and certification paths to advance your career
+            Discover trending skills, popular technologies, and what's hot in the learning community
           </p>
         </div>
 
@@ -216,9 +216,9 @@ const Explore = () => {
         {/* Tabs */}
         <Tabs defaultValue="skills" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="skills">Trending Skills</TabsTrigger>
-            <TabsTrigger value="certifications">Certifications</TabsTrigger>
-            <TabsTrigger value="paths">Learning Paths</TabsTrigger>
+            <TabsTrigger value="skills">🔥 Trending Skills</TabsTrigger>
+            <TabsTrigger value="certifications">🏆 Popular Certifications</TabsTrigger>
+            <TabsTrigger value="paths">🚀 Hot Learning Paths</TabsTrigger>
           </TabsList>
 
           <TabsContent value="skills" className="space-y-6">

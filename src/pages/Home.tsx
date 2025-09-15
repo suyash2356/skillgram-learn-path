@@ -13,8 +13,10 @@ import {
   ExternalLink,
   TrendingUp,
   Clock,
-  Users
+  Users,
+  Plus
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Home = () => {
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
@@ -147,16 +149,37 @@ const Home = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-6 max-w-2xl">
-        {/* Stories/Quick Access */}
+        {/* Create Post Section */}
+        <Card className="mb-6 shadow-card bg-gradient-primary">
+          <CardContent className="p-6 text-center text-white">
+            <h2 className="text-xl font-bold mb-2">Share Your Knowledge</h2>
+            <p className="mb-4 opacity-90">
+              Create educational content and help others learn
+            </p>
+            <Button 
+              variant="secondary" 
+              size="lg" 
+              asChild
+              className="bg-white text-primary hover:bg-white/90"
+            >
+              <Link to="/create-post">
+                <Plus className="h-4 w-4 mr-2" />
+                Create New Post
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Quick Access */}
         <Card className="mb-6 shadow-card">
           <CardContent className="p-4">
             <div className="flex space-x-4 overflow-x-auto pb-2">
-              <div className="flex-shrink-0 text-center">
+              <Link to="/explore" className="flex-shrink-0 text-center">
                 <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mb-2">
                   <TrendingUp className="h-6 w-6 text-white" />
                 </div>
                 <span className="text-xs text-muted-foreground">Trending</span>
-              </div>
+              </Link>
               <div className="flex-shrink-0 text-center">
                 <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mb-2">
                   <Play className="h-6 w-6 text-white" />

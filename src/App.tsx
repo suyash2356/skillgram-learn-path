@@ -10,6 +10,9 @@ import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Explore from "./pages/Explore";
 import CreateRoadmap from "./pages/CreateRoadmap";
+import SearchResults from "./pages/SearchResults";
+import CreatePost from "./pages/CreatePost";
+import MyRoadmaps from "./pages/MyRoadmaps";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,9 +31,12 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/create-roadmap" element={<CreateRoadmap />} />
-          <Route path="/roadmaps" element={<Home />} />
-          <Route path="/news" element={<Home />} />
-          <Route path="/recommendations" element={<Explore />} />
+          <Route path="/search" element={<SearchResults />} />
+          <Route path="/create-post" element={<CreatePost />} />
+          <Route path="/roadmaps" element={<MyRoadmaps />} />
+          <Route path="/my-posts" element={<Profile />} />
+          <Route path="/saved-posts" element={<Profile />} />
+          <Route path="/support" element={<Profile />} />
           <Route path="/settings" element={<Profile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const CreateRoadmap = () => {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [isGenerating, setIsGenerating] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -34,6 +36,17 @@ const CreateRoadmap = () => {
     focusAreas: [] as string[],
     deadline: ""
   });
+
+  useEffect(() => {
+    const topic = searchParams.get('topic');
+    if (topic) {
+      setFormData(prev => ({
+        ...prev,
+        title: `${topic} Learning Roadmap`,
+        description: `Comprehensive learning path for mastering ${topic}`
+      }));
+    }
+  }, [searchParams]);
 
   const skillLevels = [
     { value: "beginner", label: "Beginner - New to this field" },
