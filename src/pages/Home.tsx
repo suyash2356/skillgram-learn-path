@@ -149,26 +149,6 @@ const Home = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-6 max-w-2xl">
-        {/* Create Post Section */}
-        <Card className="mb-6 shadow-card bg-gradient-primary">
-          <CardContent className="p-6 text-center text-white">
-            <h2 className="text-xl font-bold mb-2">Share Your Knowledge</h2>
-            <p className="mb-4 opacity-90">
-              Create educational content and help others learn
-            </p>
-            <Button 
-              variant="secondary" 
-              size="lg" 
-              asChild
-              className="bg-white text-primary hover:bg-white/90"
-            >
-              <Link to="/create-post">
-                <Plus className="h-4 w-4 mr-2" />
-                Create New Post
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
 
         {/* Quick Access */}
         <Card className="mb-6 shadow-card">
@@ -358,8 +338,23 @@ const Home = () => {
 
         {/* Load More */}
         <div className="text-center py-8">
-          <Button variant="outline" className="w-full max-w-sm">
+          <Button variant="outline" className="w-full max-w-sm mb-4">
             Load More Content
+          </Button>
+        </div>
+
+        {/* Create Post Button */}
+        <div className="text-center pb-8">
+          <Button 
+            variant="default" 
+            size="sm" 
+            asChild
+            className="bg-gradient-primary text-white hover:opacity-90"
+          >
+            <Link to="/create-post">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Post
+            </Link>
           </Button>
         </div>
       </div>

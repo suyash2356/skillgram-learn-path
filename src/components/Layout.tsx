@@ -107,14 +107,6 @@ export const Layout = ({ children }: LayoutProps) => {
 
           {/* Right Side Actions */}
           <div className="flex items-center space-x-2">
-            {/* Create Post Button */}
-            <Button variant="outline" size="sm" asChild className="hidden sm:flex">
-              <Link to="/create-post">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Post
-              </Link>
-            </Button>
-
             {/* Settings Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
