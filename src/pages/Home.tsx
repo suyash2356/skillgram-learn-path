@@ -4,6 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { CommentDialog } from "@/components/CommentDialog";
+import { ShareDialog } from "@/components/ShareDialog";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Heart, 
   MessageCircle, 
@@ -16,11 +19,15 @@ import {
   Users,
   Plus
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const Home = () => {
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
   const [bookmarkedPosts, setBookmarkedPosts] = useState<Set<number>>(new Set());
+  const [commentDialog, setCommentDialog] = useState<{ open: boolean; post: any }>({ open: false, post: null });
+  const [shareDialog, setShareDialog] = useState<{ open: boolean; post: any }>({ open: false, post: null });
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const feedData = [
     {
@@ -139,11 +146,51 @@ const Home = () => {
       const newSet = new Set(prev);
       if (newSet.has(postId)) {
         newSet.delete(postId);
+        toast({ title: "Removed from saved posts" });
       } else {
         newSet.add(postId);
+        toast({ title: "Added to saved posts" });
       }
       return newSet;
     });
+  };
+
+  const openComments = (post: any) => {
+    const comments = [
+      {
+        id: 1,
+        author: "John Doe",
+        avatar: "/placeholder.svg",
+        content: "Great content! Very helpful for understanding the concepts.",
+        timestamp: "2 hours ago",
+        likes: 5
+      },
+      {
+        id: 2,
+        author: "Sarah Wilson",
+        avatar: "/placeholder.svg", 
+        content: "Thanks for sharing this. Looking forward to more content like this.",
+        timestamp: "1 hour ago",
+        likes: 2
+      }
+    ];
+    setCommentDialog({ open: true, post: { ...post, comments } });
+  };
+
+  const openShare = (post: any) => {
+    setShareDialog({ open: true, post });
+  };
+
+  const handleExternalLink = (post: any) => {
+    // Simulate opening external content
+    window.open('#', '_blank');
+    toast({ title: "Opening content..." });
+  };
+
+  const handleAuthorClick = (author: any) => {
+    // Navigate to author profile
+    navigate('/profile');
+    toast({ title: `Viewing ${author.name}'s profile` });
   };
 
   return (
@@ -160,18 +207,18 @@ const Home = () => {
                 </div>
                 <span className="text-xs text-muted-foreground">Trending</span>
               </Link>
-              <div className="flex-shrink-0 text-center">
+              <Link to="/new-videos" className="flex-shrink-0 text-center">
                 <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mb-2">
                   <Play className="h-6 w-6 text-white" />
                 </div>
                 <span className="text-xs text-muted-foreground">New Videos</span>
-              </div>
-              <div className="flex-shrink-0 text-center">
+              </Link>
+              <Link to="/communities" className="flex-shrink-0 text-center">
                 <div className="w-16 h-16 bg-success rounded-full flex items-center justify-center mb-2">
                   <Users className="h-6 w-6 text-white" />
                 </div>
                 <span className="text-xs text-muted-foreground">Communities</span>
-              </div>
+              </Link>
               <Link to="/create-post" className="flex-shrink-0 text-center">
                 <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mb-2">
                   <Plus className="h-6 w-6 text-white" />
@@ -189,7 +236,10 @@ const Home = () => {
               <CardContent className="p-0">
                 {/* Author Header */}
                 <div className="flex items-center justify-between p-4 pb-3">
-                  <div className="flex items-center space-x-3">
+                  <div 
+                    className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => handleAuthorClick(post.author)}
+                  >
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={post.author.avatar} />
                       <AvatarFallback>
@@ -310,12 +360,22 @@ const Home = () => {
                       <span className="text-sm">{post.engagement.likes}</span>
                     </Button>
 
-                    <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex items-center space-x-2"
+                      onClick={() => openComments(post)}
+                    >
                       <MessageCircle className="h-4 w-4" />
                       <span className="text-sm">{post.engagement.comments}</span>
                     </Button>
 
-                    <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex items-center space-x-2"
+                      onClick={() => openShare(post)}
+                    >
                       <Share2 className="h-4 w-4" />
                       <span className="text-sm">{post.engagement.shares}</span>
                     </Button>
@@ -332,7 +392,11 @@ const Home = () => {
                         className={`h-4 w-4 ${bookmarkedPosts.has(post.id) ? "fill-current" : ""}`}
                       />
                     </Button>
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleExternalLink(post)}
+                    >
                       <ExternalLink className="h-4 w-4" />
                     </Button>
                   </div>
@@ -348,6 +412,21 @@ const Home = () => {
             Load More Content
           </Button>
         </div>
+
+        {/* Comment Dialog */}
+        <CommentDialog
+          open={commentDialog.open}
+          onOpenChange={(open) => setCommentDialog({ open, post: null })}
+          postTitle={commentDialog.post?.content?.title || ""}
+          comments={commentDialog.post?.comments || []}
+        />
+
+        {/* Share Dialog */}
+        <ShareDialog
+          open={shareDialog.open}
+          onOpenChange={(open) => setShareDialog({ open, post: null })}
+          title={shareDialog.post?.content?.title || ""}
+        />
       </div>
     </Layout>
   );

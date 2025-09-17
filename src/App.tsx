@@ -13,6 +13,8 @@ import CreateRoadmap from "./pages/CreateRoadmap";
 import SearchResults from "./pages/SearchResults";
 import CreatePost from "./pages/CreatePost";
 import MyRoadmaps from "./pages/MyRoadmaps";
+import Communities from "./pages/Communities";
+import NewVideos from "./pages/NewVideos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,8 @@ const App = () => (
           <Route path="/search" element={<SearchResults />} />
           <Route path="/create-post" element={<CreatePost />} />
           <Route path="/roadmaps" element={<MyRoadmaps />} />
+          <Route path="/communities" element={<Communities />} />
+          <Route path="/new-videos" element={<NewVideos />} />
           <Route path="/my-posts" element={<Profile />} />
           <Route path="/saved-posts" element={<Profile />} />
           <Route path="/support" element={<Profile />} />
