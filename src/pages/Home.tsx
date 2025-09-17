@@ -172,6 +172,12 @@ const Home = () => {
                 </div>
                 <span className="text-xs text-muted-foreground">Communities</span>
               </div>
+              <Link to="/create-post" className="flex-shrink-0 text-center">
+                <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mb-2">
+                  <Plus className="h-6 w-6 text-white" />
+                </div>
+                <span className="text-xs text-muted-foreground">Create Post</span>
+              </Link>
             </div>
           </CardContent>
         </Card>
@@ -338,23 +344,8 @@ const Home = () => {
 
         {/* Load More */}
         <div className="text-center py-8">
-          <Button variant="outline" className="w-full max-w-sm mb-4">
+          <Button variant="outline" className="w-full max-w-sm">
             Load More Content
-          </Button>
-        </div>
-
-        {/* Create Post Button */}
-        <div className="text-center pb-8">
-          <Button 
-            variant="default" 
-            size="sm" 
-            asChild
-            className="bg-gradient-primary text-white hover:opacity-90"
-          >
-            <Link to="/create-post">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Post
-            </Link>
           </Button>
         </div>
       </div>
