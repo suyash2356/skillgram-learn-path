@@ -21,113 +21,238 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
+const feedData = [
+  {
+    id: 1,
+    author: {
+      name: "Dr. Sarah Chen",
+      username: "@sarahchen",
+      avatar: "/placeholder.svg",
+      title: "AI Research Scientist"
+    },
+    content: {
+      type: "article",
+      title: "The Future of Machine Learning: Trends to Watch in 2024",
+      description: "Exploring the latest developments in AI and their impact on various industries. From transformer models to quantum computing integration.",
+      image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=600&h=400&fit=crop",
+      readTime: "8 min read",
+      category: "AI/ML"
+    },
+    engagement: {
+      likes: 342,
+      comments: 28,
+      shares: 15
+    },
+    timestamp: "2 hours ago"
+  },
+  {
+    id: 2,
+    author: {
+      name: "Tech Academy",
+      username: "@techacademy",
+      avatar: "/placeholder.svg",
+      title: "Educational Platform"
+    },
+    content: {
+      type: "video",
+      title: "Complete Python Data Science Roadmap 2024",
+      description: "A comprehensive guide covering everything from basics to advanced topics. Perfect for beginners and intermediate learners.",
+      thumbnail: "https://images.unsplash.com/photo-1526379879527-8559ecfcaec0?w=600&h=400&fit=crop",
+      duration: "45:30",
+      category: "Programming"
+    },
+    engagement: {
+      likes: 892,
+      comments: 67,
+      shares: 234
+    },
+    timestamp: "4 hours ago"
+  },
+  {
+    id: 3,
+    author: {
+      name: "DevOps Master",
+      username: "@devopsmaster",
+      avatar: "/placeholder.svg",
+      title: "Senior DevOps Engineer"
+    },
+    content: {
+      type: "resource",
+      title: "Top 10 DevOps Tools Every Developer Should Know",
+      description: "Curated list of essential DevOps tools with hands-on tutorials and implementation guides.",
+      resources: [
+        { name: "Docker", type: "Containerization" },
+        { name: "Kubernetes", type: "Orchestration" },
+        { name: "Jenkins", type: "CI/CD" }
+      ],
+      category: "DevOps"
+    },
+    engagement: {
+      likes: 456,
+      comments: 34,
+      shares: 89
+    },
+    timestamp: "6 hours ago"
+  },
+  {
+    id: 4,
+    author: {
+      name: "Design Hub",
+      username: "@designhub",
+      avatar: "/placeholder.svg",
+      title: "UX/UI Community"
+    },
+    content: {
+      type: "course",
+      title: "UI/UX Design Fundamentals - Complete Certification Course",
+      description: "Master the principles of user experience and interface design. Includes real-world projects and portfolio guidance.",
+      image: "https://images.unsplash.com/photo-1559028012-481c04fa702d?w=600&h=400&fit=crop",
+      price: "Free",
+      students: "12.5k",
+      rating: 4.8,
+      category: "Design"
+    },
+    engagement: {
+      likes: 678,
+      comments: 45,
+      shares: 156
+    },
+    timestamp: "8 hours ago"
+  }
+];
+
+const additionalFeedData = [
+  {
+    id: 5,
+    author: {
+      name: "Code Master",
+      username: "@codemaster",
+      avatar: "/placeholder.svg",
+      title: "Full Stack Developer"
+    },
+    content: {
+      type: "article",
+      title: "Building Scalable React Applications: Best Practices",
+      description: "Learn the essential patterns and practices for building maintainable and scalable React applications in 2024.",
+      image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=600&h=400&fit=crop",
+      readTime: "12 min read",
+      category: "React"
+    },
+    engagement: {
+      likes: 523,
+      comments: 41,
+      shares: 87
+    },
+    timestamp: "10 hours ago"
+  },
+  {
+    id: 6,
+    author: {
+      name: "Data Science Hub",
+      username: "@datascience",
+      avatar: "/placeholder.svg",
+      title: "Data Analytics Team"
+    },
+    content: {
+      type: "video",
+      title: "Machine Learning for Beginners - Complete Course",
+      description: "Start your journey in machine learning with this comprehensive beginner-friendly course covering all fundamentals.",
+      thumbnail: "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=600&h=400&fit=crop",
+      duration: "2:15:30",
+      category: "Data Science"
+    },
+    engagement: {
+      likes: 1247,
+      comments: 89,
+      shares: 312
+    },
+    timestamp: "12 hours ago"
+  },
+  {
+    id: 7,
+    author: {
+      name: "Web Dev Pro",
+      username: "@webdevpro",
+      avatar: "/placeholder.svg",
+      title: "Senior Frontend Engineer"
+    },
+    content: {
+      type: "resource",
+      title: "Essential CSS Grid and Flexbox Resources",
+      description: "Curated collection of the best resources to master CSS Grid and Flexbox layouts.",
+      resources: [
+        { name: "CSS Grid Generator", type: "Tool" },
+        { name: "Flexbox Guide", type: "Documentation" },
+        { name: "Layout Examples", type: "Templates" }
+      ],
+      category: "CSS"
+    },
+    engagement: {
+      likes: 334,
+      comments: 22,
+      shares: 67
+    },
+    timestamp: "14 hours ago"
+  },
+  {
+    id: 8,
+    author: {
+      name: "Career Coach",
+      username: "@careercoach",
+      avatar: "/placeholder.svg",
+      title: "Tech Career Advisor"
+    },
+    content: {
+      type: "course",
+      title: "Landing Your First Tech Job - Complete Guide",
+      description: "Everything you need to know about breaking into the tech industry, from resume tips to interview preparation.",
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=400&fit=crop",
+      price: "$49",
+      students: "8.2k",
+      rating: 4.9,
+      category: "Career"
+    },
+    engagement: {
+      likes: 892,
+      comments: 156,
+      shares: 234
+    },
+    timestamp: "16 hours ago"
+  }
+];
+
 const Home = () => {
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
   const [bookmarkedPosts, setBookmarkedPosts] = useState<Set<number>>(new Set());
   const [commentDialog, setCommentDialog] = useState<{ open: boolean; post: any }>({ open: false, post: null });
   const [shareDialog, setShareDialog] = useState<{ open: boolean; post: any }>({ open: false, post: null });
+  const [feed, setFeed] = useState(feedData);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMoreContent, setHasMoreContent] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const feedData = [
-    {
-      id: 1,
-      author: {
-        name: "Dr. Sarah Chen",
-        username: "@sarahchen",
-        avatar: "/placeholder.svg",
-        title: "AI Research Scientist"
-      },
-      content: {
-        type: "article",
-        title: "The Future of Machine Learning: Trends to Watch in 2024",
-        description: "Exploring the latest developments in AI and their impact on various industries. From transformer models to quantum computing integration.",
-        image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=600&h=400&fit=crop",
-        readTime: "8 min read",
-        category: "AI/ML"
-      },
-      engagement: {
-        likes: 342,
-        comments: 28,
-        shares: 15
-      },
-      timestamp: "2 hours ago"
-    },
-    {
-      id: 2,
-      author: {
-        name: "Tech Academy",
-        username: "@techacademy",
-        avatar: "/placeholder.svg",
-        title: "Educational Platform"
-      },
-      content: {
-        type: "video",
-        title: "Complete Python Data Science Roadmap 2024",
-        description: "A comprehensive guide covering everything from basics to advanced topics. Perfect for beginners and intermediate learners.",
-        thumbnail: "https://images.unsplash.com/photo-1526379879527-8559ecfcaec0?w=600&h=400&fit=crop",
-        duration: "45:30",
-        category: "Programming"
-      },
-      engagement: {
-        likes: 892,
-        comments: 67,
-        shares: 234
-      },
-      timestamp: "4 hours ago"
-    },
-    {
-      id: 3,
-      author: {
-        name: "DevOps Master",
-        username: "@devopsmaster",
-        avatar: "/placeholder.svg",
-        title: "Senior DevOps Engineer"
-      },
-      content: {
-        type: "resource",
-        title: "Top 10 DevOps Tools Every Developer Should Know",
-        description: "Curated list of essential DevOps tools with hands-on tutorials and implementation guides.",
-        resources: [
-          { name: "Docker", type: "Containerization" },
-          { name: "Kubernetes", type: "Orchestration" },
-          { name: "Jenkins", type: "CI/CD" }
-        ],
-        category: "DevOps"
-      },
-      engagement: {
-        likes: 456,
-        comments: 34,
-        shares: 89
-      },
-      timestamp: "6 hours ago"
-    },
-    {
-      id: 4,
-      author: {
-        name: "Design Hub",
-        username: "@designhub",
-        avatar: "/placeholder.svg",
-        title: "UX/UI Community"
-      },
-      content: {
-        type: "course",
-        title: "UI/UX Design Fundamentals - Complete Certification Course",
-        description: "Master the principles of user experience and interface design. Includes real-world projects and portfolio guidance.",
-        image: "https://images.unsplash.com/photo-1559028012-481c04fa702d?w=600&h=400&fit=crop",
-        price: "Free",
-        students: "12.5k",
-        rating: 4.8,
-        category: "Design"
-      },
-      engagement: {
-        likes: 678,
-        comments: 45,
-        shares: 156
-      },
-      timestamp: "8 hours ago"
-    }
-  ];
+  const loadMoreContent = async () => {
+    if (isLoading) return;
+    
+    setIsLoading(true);
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Add more content to feed
+    const newPosts = additionalFeedData.map(post => ({
+      ...post,
+      id: post.id + feed.length // Ensure unique IDs
+    }));
+    
+    setFeed(prevFeed => [...prevFeed, ...newPosts]);
+    setHasMoreContent(false); // No more content after this load
+    setIsLoading(false);
+    
+    toast({ title: "New content loaded!" });
+  };
+
 
   const toggleLike = (postId: number) => {
     setLikedPosts(prev => {
@@ -231,7 +356,7 @@ const Home = () => {
 
         {/* Feed */}
         <div className="space-y-6">
-          {feedData.map((post) => (
+          {feed.map((post) => (
             <Card key={post.id} className="shadow-card hover:shadow-elevated transition-all duration-300 animate-fade-in">
               <CardContent className="p-0">
                 {/* Author Header */}
@@ -407,11 +532,18 @@ const Home = () => {
         </div>
 
         {/* Load More */}
-        <div className="text-center py-8">
-          <Button variant="outline" className="w-full max-w-sm">
-            Load More Content
-          </Button>
-        </div>
+        {hasMoreContent && (
+          <div className="text-center py-8">
+            <Button 
+              variant="outline" 
+              className="w-full max-w-sm"
+              onClick={loadMoreContent}
+              disabled={isLoading}
+            >
+              {isLoading ? "Loading..." : "Load More Content"}
+            </Button>
+          </div>
+        )}
 
         {/* Comment Dialog */}
         <CommentDialog
