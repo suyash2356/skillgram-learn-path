@@ -41,212 +41,244 @@ const Explore = () => {
 
   const trendingSkills = [
     {
-      name: "React 18",
-      category: "Frontend",
-      learners: "23.5k",
-      difficulty: "Intermediate",
-      rating: 4.8,
-      trending: true,
-      description: "Master the latest React features including concurrent rendering"
-    },
-    {
-      name: "Python for Data Science",
-      category: "Data Science",
-      learners: "45.2k",
+      name: "CS50's Introduction to Computer Science",
+      category: "Computer Science",
+      learners: "4.2M",
       difficulty: "Beginner",
       rating: 4.9,
       trending: true,
-      description: "Learn Python programming for data analysis and visualization"
+      description: "Harvard's introduction to computer science and programming",
+      link: "https://www.edx.org/course/introduction-computer-science-harvardx-cs50x"
     },
     {
-      name: "Machine Learning Fundamentals",
-      category: "AI/ML",
-      learners: "18.7k",
-      difficulty: "Advanced",
+      name: "Responsive Web Design",
+      category: "Web Development",
+      learners: "2.8M",
+      difficulty: "Beginner",
+      rating: 4.8,
+      trending: true,
+      description: "Learn HTML, CSS, and responsive design principles with freeCodeCamp",
+      link: "https://www.freecodecamp.org/learn/responsive-web-design/"
+    },
+    {
+      name: "JavaScript Algorithms and Data Structures",
+      category: "Programming",
+      learners: "1.9M",
+      difficulty: "Intermediate",
+      rating: 4.9,
+      trending: true,
+      description: "ES6, regular expressions, basic algorithm scripting",
+      link: "https://www.freecodecamp.org/learn/javascript-algorithms-and-data-structures/"
+    },
+    {
+      name: "Google Data Analytics Professional Certificate",
+      category: "Data Science",
+      learners: "1.2M",
+      difficulty: "Beginner",
       rating: 4.7,
       trending: true,
-      description: "Understand core ML algorithms and their applications"
+      description: "Job-ready skills in data analytics, Tableau, R, and SQL",
+      link: "https://www.coursera.org/professional-certificates/google-data-analytics"
     },
     {
-      name: "Node.js Backend Development",
-      category: "Backend",
-      learners: "31.8k",
-      difficulty: "Intermediate",
-      rating: 4.6,
-      trending: false,
-      description: "Build scalable server-side applications with Node.js"
-    },
-    {
-      name: "UI/UX Design Principles",
-      category: "Design",
-      learners: "27.3k",
+      name: "Python for Everybody",
+      category: "Programming",
+      learners: "2.1M",
       difficulty: "Beginner",
       rating: 4.8,
       trending: false,
-      description: "Design beautiful and user-friendly interfaces"
+      description: "Learn Python programming fundamentals from University of Michigan",
+      link: "https://www.coursera.org/specializations/python"
     },
     {
-      name: "DevOps with Docker",
-      category: "Infrastructure",
-      learners: "15.9k",
-      difficulty: "Advanced",
+      name: "Google UX Design Professional Certificate",
+      category: "Design",
+      learners: "850k",
+      difficulty: "Beginner",
+      rating: 4.8,
+      trending: true,
+      description: "User experience design and research fundamentals",
+      link: "https://www.coursera.org/professional-certificates/google-ux-design"
+    },
+    {
+      name: "AWS Cloud Practitioner Essentials",
+      category: "Cloud Computing",
+      learners: "650k",
+      difficulty: "Beginner",
+      rating: 4.7,
+      trending: false,
+      description: "Introduction to AWS cloud computing concepts",
+      link: "https://aws.amazon.com/training/digital/aws-cloud-practitioner-essentials/"
+    },
+    {
+      name: "Machine Learning",
+      category: "AI/ML",
+      learners: "4.7M",
+      difficulty: "Intermediate",
+      rating: 4.9,
+      trending: true,
+      description: "Stanford's famous machine learning course by Andrew Ng",
+      link: "https://www.coursera.org/learn/machine-learning"
+    },
+    {
+      name: "Khan Academy Programming",
+      category: "Programming",
+      learners: "3.2M",
+      difficulty: "Beginner",
       rating: 4.5,
       trending: false,
-      description: "Containerize applications and manage deployment workflows"
-    },
-    {
-      name: "TypeScript Advanced",
-      category: "Frontend",
-      learners: "19.2k",
-      difficulty: "Advanced",
-      rating: 4.7,
-      trending: true,
-      description: "Master advanced TypeScript patterns and type systems"
-    },
-    {
-      name: "Next.js 14",
-      category: "Frontend",
-      learners: "22.1k",
-      difficulty: "Intermediate",
-      rating: 4.8,
-      trending: true,
-      description: "Build full-stack React applications with Next.js"
-    },
-    {
-      name: "AWS Cloud Practitioner",
-      category: "Cloud",
-      learners: "35.7k",
-      difficulty: "Beginner",
-      rating: 4.6,
-      trending: false,
-      description: "Learn Amazon Web Services fundamentals and core services"
+      description: "Intro to programming with JavaScript and web development",
+      link: "https://www.khanacademy.org/computing/computer-programming"
     }
   ];
 
   const examCertifications = [
     {
-      name: "AWS Solutions Architect",
+      name: "AWS Solutions Architect Associate",
       provider: "Amazon Web Services",
-      difficulty: "Professional",
+      difficulty: "Associate",
       passingScore: "72%",
       avgSalary: "$130k",
-      nextExam: "March 15, 2024",
-      duration: "3 hours",
+      nextExam: "Available Year-round",
+      duration: "130 minutes",
       cost: "$150",
-      description: "Design resilient and scalable AWS cloud solutions"
+      description: "Design distributed systems on AWS platform",
+      link: "https://aws.amazon.com/certification/certified-solutions-architect-associate/"
     },
     {
-      name: "Google Cloud Professional",
+      name: "Google Professional Cloud Architect",
       provider: "Google Cloud",
       difficulty: "Professional",
       passingScore: "70%",
-      avgSalary: "$125k",
-      nextExam: "March 22, 2024",
+      avgSalary: "$139k",
+      nextExam: "Available Year-round",
       duration: "2 hours",
       cost: "$200",
-      description: "Demonstrate expertise in Google Cloud Platform"
+      description: "Design and manage scalable, reliable Google Cloud solutions",
+      link: "https://cloud.google.com/certification/cloud-architect"
     },
     {
-      name: "Certified Kubernetes Administrator",
-      provider: "CNCF",
-      difficulty: "Expert",
-      passingScore: "74%",
-      avgSalary: "$140k",
-      nextExam: "April 5, 2024",
-      duration: "2 hours",
-      cost: "$375",
-      description: "Manage and orchestrate containerized applications"
+      name: "Google IT Support Professional Certificate",
+      provider: "Google (Coursera)",
+      difficulty: "Beginner",
+      passingScore: "N/A",
+      avgSalary: "$50k",
+      nextExam: "Self-paced",
+      duration: "3-6 months",
+      cost: "Free to audit",
+      description: "Technical support fundamentals and troubleshooting",
+      link: "https://www.coursera.org/professional-certificates/google-it-support"
     },
     {
-      name: "Meta Frontend Developer",
-      provider: "Meta",
-      difficulty: "Intermediate",
-      passingScore: "80%",
-      avgSalary: "$95k",
-      nextExam: "Continuous",
-      duration: "Various",
-      cost: "$39/month",
-      description: "Build responsive user interfaces with modern frameworks"
-    },
-    {
-      name: "Microsoft Azure Developer",
+      name: "Microsoft Azure Fundamentals",
       provider: "Microsoft",
-      difficulty: "Professional",
+      difficulty: "Beginner",
       passingScore: "70%",
-      avgSalary: "$118k",
-      nextExam: "April 12, 2024",
-      duration: "2.5 hours",
-      cost: "$165",
-      description: "Develop cloud applications on Azure platform"
+      avgSalary: "$85k",
+      nextExam: "Available Year-round",
+      duration: "45 minutes",
+      cost: "$99",
+      description: "Azure cloud services and solutions fundamentals",
+      link: "https://docs.microsoft.com/en-us/learn/certifications/azure-fundamentals/"
     },
     {
-      name: "Salesforce Administrator",
-      provider: "Salesforce",
-      difficulty: "Intermediate",
-      passingScore: "65%",
-      avgSalary: "$86k",
-      nextExam: "Continuous",
-      duration: "1.5 hours",
-      cost: "$200",
-      description: "Configure and manage Salesforce organizations"
+      name: "IBM Data Science Professional Certificate",
+      provider: "IBM (Coursera)",
+      difficulty: "Beginner",
+      passingScore: "N/A",
+      avgSalary: "$95k",
+      nextExam: "Self-paced",
+      duration: "3-11 months",
+      cost: "Free to audit",
+      description: "Python, SQL, machine learning, and data visualization",
+      link: "https://www.coursera.org/professional-certificates/ibm-data-science"
+    },
+    {
+      name: "Google Digital Marketing & E-commerce",
+      provider: "Google (Coursera)",
+      difficulty: "Beginner",
+      passingScore: "N/A",
+      avgSalary: "$55k",
+      nextExam: "Self-paced",
+      duration: "3-6 months",
+      cost: "Free to audit",
+      description: "Digital marketing strategy and e-commerce fundamentals",
+      link: "https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce"
     }
   ];
 
   const learningPaths = [
     {
-      title: "Full Stack Web Developer",
-      description: "Complete path from frontend to backend development",
-      duration: "6-8 months",
-      skills: ["HTML/CSS", "JavaScript", "React", "Node.js", "Database"],
+      title: "Full Stack Web Development",
+      description: "Complete curriculum from HTML/CSS to full-stack JavaScript",
+      duration: "1,800 hours",
+      skills: ["HTML/CSS", "JavaScript", "React", "Node.js", "Databases"],
       level: "Beginner to Advanced",
-      students: "15.2k",
+      students: "2.8M",
       rating: 4.8,
-      price: "$49/month",
-      projects: 12
+      price: "Free",
+      projects: 20,
+      link: "https://www.freecodecamp.org/learn/"
     },
     {
-      title: "Data Scientist",
-      description: "Master data analysis, machine learning, and statistics",
-      duration: "8-10 months",
-      skills: ["Python", "Statistics", "Machine Learning", "SQL", "Visualization"],
-      level: "Intermediate to Advanced",
-      students: "12.8k",
+      title: "Data Scientist Nanodegree",
+      description: "Data pipelines, experiments, recommendation systems",
+      duration: "4 months",
+      skills: ["Python", "Machine Learning", "Statistics", "SQL", "Data Visualization"],
+      level: "Intermediate",
+      students: "15.2k",
       rating: 4.9,
-      price: "$59/month",
-      projects: 15
+      price: "$399/month",
+      projects: 8,
+      link: "https://www.udacity.com/course/data-scientist-nanodegree--nd025"
     },
     {
-      title: "Cloud Solutions Architect",
-      description: "Design and implement scalable cloud solutions",
-      duration: "4-6 months",
-      skills: ["AWS/Azure", "DevOps", "Microservices", "Security", "Monitoring"],
-      level: "Advanced",
+      title: "Cloud Development Path",
+      description: "AWS, Azure, Docker, and Kubernetes fundamentals",
+      duration: "40 hours",
+      skills: ["AWS", "Azure", "Docker", "Kubernetes", "DevOps"],
+      level: "Beginner to Advanced",
       students: "8.9k",
       rating: 4.7,
-      price: "$69/month",
-      projects: 8
+      price: "$29/month",
+      projects: 15,
+      link: "https://www.pluralsight.com/paths/cloud-development"
     },
     {
-      title: "Mobile App Developer",
-      description: "Build native and cross-platform mobile applications",
-      duration: "5-7 months",
-      skills: ["React Native", "Flutter", "iOS", "Android", "API Integration"],
+      title: "Machine Learning Engineering for Production",
+      description: "MLOps, TensorFlow, and production ML systems",
+      duration: "6-12 months",
+      skills: ["MLOps", "TensorFlow", "Kubernetes", "Production ML", "Data Engineering"],
       level: "Intermediate",
-      students: "11.3k",
+      students: "12.8k",
       rating: 4.6,
-      price: "$55/month",
-      projects: 10
+      price: "$49/month",
+      projects: 11,
+      link: "https://www.coursera.org/specializations/machine-learning-engineering-for-production-mlops"
     },
     {
-      title: "Cybersecurity Specialist",
-      description: "Protect systems and networks from security threats",
-      duration: "6-9 months",
-      skills: ["Network Security", "Penetration Testing", "Risk Assessment", "Compliance"],
-      level: "Advanced",
-      students: "7.4k",
+      title: "Frontend Master Path",
+      description: "React, TypeScript, and modern frontend development",
+      duration: "6 months",
+      skills: ["React", "TypeScript", "CSS", "JavaScript", "Testing"],
+      level: "Beginner to Intermediate",
+      students: "11.3k",
       rating: 4.8,
-      price: "$75/month",
-      projects: 6
+      price: "$39.99/month",
+      projects: 10,
+      link: "https://www.codecademy.com/learn/paths/front-end-engineer-career-path"
+    },
+    {
+      title: "Khan Academy Programming",
+      description: "Intro to programming with JavaScript and web development",
+      duration: "Self-paced",
+      skills: ["JavaScript", "HTML/CSS", "Web Development", "Computer Science"],
+      level: "Beginner",
+      students: "3.2M",
+      rating: 4.5,
+      price: "Free",
+      projects: 6,
+      link: "https://www.khanacademy.org/computing/computer-programming"
     }
   ];
 
@@ -297,18 +329,34 @@ const Explore = () => {
     });
   };
 
-  const handleStartLearning = (skillName: string) => {
-    toast({
-      title: "Course Started",
-      description: `Welcome to ${skillName}! Happy learning!`,
-    });
+  const handleStartLearning = (skillName: string, link?: string) => {
+    if (link) {
+      window.open(link, '_blank');
+      toast({
+        title: "Opening Course",
+        description: `Opening ${skillName} in new tab...`,
+      });
+    } else {
+      toast({
+        title: "Course Started",
+        description: `Welcome to ${skillName}! Happy learning!`,
+      });
+    }
   };
 
-  const handleViewDetails = (itemName: string) => {
-    toast({
-      title: "Details",
-      description: `Opening details for ${itemName}`,
-    });
+  const handleViewDetails = (itemName: string, link?: string) => {
+    if (link) {
+      window.open(link, '_blank');
+      toast({
+        title: "Opening Details",
+        description: `Opening ${itemName} details in new tab...`,
+      });
+    } else {
+      toast({
+        title: "Details",
+        description: `Opening details for ${itemName}`,
+      });
+    }
   };
 
   const handleBookmark = (itemName: string) => {
@@ -318,11 +366,19 @@ const Explore = () => {
     });
   };
 
-  const handleStartPath = (pathTitle: string) => {
-    toast({
-      title: "Learning Path Started",
-      description: `Welcome to ${pathTitle}! Your journey begins now.`,
-    });
+  const handleStartPath = (pathTitle: string, link?: string) => {
+    if (link) {
+      window.open(link, '_blank');
+      toast({
+        title: "Opening Learning Path",
+        description: `Opening ${pathTitle} in new tab...`,
+      });
+    } else {
+      toast({
+        title: "Learning Path Started",
+        description: `Welcome to ${pathTitle}! Your journey begins now.`,
+      });
+    }
   };
 
   return (
@@ -458,14 +514,14 @@ const Explore = () => {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => handleViewDetails(skill.name)}
+                            onClick={() => handleViewDetails(skill.name, skill.link)}
                           >
                             <ExternalLink className="h-3 w-3 mr-1" />
                             Details
                           </Button>
                           <Button 
                             size="sm"
-                            onClick={() => handleStartLearning(skill.name)}
+                            onClick={() => handleStartLearning(skill.name, skill.link)}
                           >
                             <Play className="h-3 w-3 mr-1" />
                             Start
@@ -558,14 +614,14 @@ const Explore = () => {
                       <div className="flex space-x-2">
                         <Button 
                           className="flex-1"
-                          onClick={() => handleViewDetails(cert.name)}
+                          onClick={() => handleViewDetails(cert.name, cert.link)}
                         >
                           View Details
                         </Button>
                         <Button 
                           variant="outline" 
                           className="flex-1"
-                          onClick={() => handleStartLearning(`${cert.name} preparation`)}
+                          onClick={() => handleStartLearning(`${cert.name} preparation`, cert.link)}
                         >
                           <BookOpen className="h-4 w-4 mr-2" />
                           Study Path
@@ -669,14 +725,14 @@ const Explore = () => {
                         <div className="space-y-2">
                           <Button 
                             className="w-full"
-                            onClick={() => handleStartPath(path.title)}
+                            onClick={() => handleStartPath(path.title, path.link)}
                           >
                             Start Path
                           </Button>
                           <Button 
                             variant="outline" 
                             className="w-full"
-                            onClick={() => handleViewDetails(path.title)}
+                            onClick={() => handleViewDetails(path.title, path.link)}
                           >
                             View Curriculum
                           </Button>
