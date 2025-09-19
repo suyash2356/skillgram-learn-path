@@ -2,6 +2,7 @@ import { ReactNode, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Home, 
   Search, 
@@ -35,6 +36,7 @@ export const Layout = ({ children }: LayoutProps) => {
   const currentPath = location.pathname;
   const [searchQuery, setSearchQuery] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const { signOut } = useAuth();
 
   const navigation = [
     { name: "Home", href: "/home", icon: Home },
@@ -54,6 +56,11 @@ export const Layout = ({ children }: LayoutProps) => {
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
     document.documentElement.classList.toggle('dark');
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
   };
 
   return (
@@ -161,11 +168,9 @@ export const Layout = ({ children }: LayoutProps) => {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/login" className="flex items-center text-destructive">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </Link>
+                <DropdownMenuItem onClick={handleSignOut} className="flex items-center text-destructive">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

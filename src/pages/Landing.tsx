@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   BookOpen, 
   Brain, 
@@ -11,8 +11,20 @@ import {
   CheckCircle
 } from "lucide-react";
 import heroImage from "@/assets/hero-education.jpg";
+import { useAuth } from "@/hooks/useAuth";
 
 const Landing = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleAuthenticatedNavigation = (path: string) => {
+    if (user) {
+      navigate(path);
+    } else {
+      navigate(`/login?redirect=${encodeURIComponent(path)}`);
+    }
+  };
+
   const features = [
     {
       icon: Brain,
@@ -59,12 +71,20 @@ const Landing = () => {
             </span>
           </div>
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" asChild>
-              <Link to="/login">Sign In</Link>
-            </Button>
-            <Button asChild>
-              <Link to="/signup">Get Started</Link>
-            </Button>
+            {user ? (
+              <Button asChild>
+                <Link to="/home">Dashboard</Link>
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" asChild>
+                  <Link to="/login">Sign In</Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/signup">Get Started</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -88,16 +108,20 @@ const Landing = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="shadow-glow" asChild>
-                <Link to="/signup">
-                  Start Learning
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
+              <Button 
+                size="lg" 
+                className="shadow-glow" 
+                onClick={() => handleAuthenticatedNavigation('/home')}
+              >
+                Start Learning
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link to="/explore">
-                  Explore Skills
-                </Link>
+              <Button 
+                size="lg" 
+                variant="outline" 
+                onClick={() => handleAuthenticatedNavigation('/explore')}
+              >
+                Explore Skills
               </Button>
             </div>
 

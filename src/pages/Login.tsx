@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -15,21 +16,48 @@ const Login = () => {
     password: ""
   });
   const { toast } = useToast();
+  const { signIn, user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      const redirectTo = searchParams.get('redirect') || '/home';
+      navigate(redirectTo);
+    }
+  }, [user, navigate, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call - Replace with actual Supabase auth
-    setTimeout(() => {
+    try {
+      const { error } = await signIn(formData.email, formData.password);
+
+      if (error) {
+        toast({
+          title: "Login Failed",
+          description: error.message || "Please check your credentials and try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login Successful!",
+          description: "Welcome back to Skill-Metrics",
+        });
+        const redirectTo = searchParams.get('redirect') || '/home';
+        navigate(redirectTo);
+      }
+    } catch (error) {
       toast({
-        title: "Login Successful!",
-        description: "Welcome back to Skill-Metrics",
+        title: "Login Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
-      // Redirect to home page
-      window.location.href = "/home";
-    }, 1500);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

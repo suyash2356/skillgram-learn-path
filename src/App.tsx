@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -25,26 +27,28 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
+        <AuthProvider>
+          <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/explore" element={<Explore />} />
-          <Route path="/create-roadmap" element={<CreateRoadmap />} />
-          <Route path="/search" element={<SearchResults />} />
-          <Route path="/create-post" element={<CreatePost />} />
-          <Route path="/roadmaps" element={<MyRoadmaps />} />
-          <Route path="/communities" element={<Communities />} />
-          <Route path="/new-videos" element={<NewVideos />} />
-          <Route path="/my-posts" element={<Profile />} />
-          <Route path="/saved-posts" element={<Profile />} />
-          <Route path="/support" element={<Profile />} />
-          <Route path="/settings" element={<Profile />} />
+          <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/explore" element={<ProtectedRoute><Explore /></ProtectedRoute>} />
+          <Route path="/create-roadmap" element={<ProtectedRoute><CreateRoadmap /></ProtectedRoute>} />
+          <Route path="/search" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
+          <Route path="/create-post" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
+          <Route path="/roadmaps" element={<ProtectedRoute><MyRoadmaps /></ProtectedRoute>} />
+          <Route path="/communities" element={<ProtectedRoute><Communities /></ProtectedRoute>} />
+          <Route path="/new-videos" element={<ProtectedRoute><NewVideos /></ProtectedRoute>} />
+          <Route path="/my-posts" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/saved-posts" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/support" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
-        </Routes>
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

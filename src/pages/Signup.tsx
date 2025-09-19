@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -20,6 +21,17 @@ const Signup = () => {
     agreeTerms: false
   });
   const { toast } = useToast();
+  const { signUp, user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      const redirectTo = searchParams.get('redirect') || '/home';
+      navigate(redirectTo);
+    }
+  }, [user, navigate, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,16 +56,31 @@ const Signup = () => {
 
     setIsLoading(true);
 
-    // Simulate API call - Replace with actual Supabase auth
-    setTimeout(() => {
+    try {
+      const { error } = await signUp(formData.email, formData.password, formData.fullName);
+
+      if (error) {
+        toast({
+          title: "Signup Failed",
+          description: error.message || "Please check your information and try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Account Created!",
+          description: "Please check your email to verify your account, then sign in.",
+        });
+        navigate('/login');
+      }
+    } catch (error) {
       toast({
-        title: "Account Created!",
-        description: "Welcome to Skill-Metrics. Let's start your learning journey!",
+        title: "Signup Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
-      // Redirect to home page
-      window.location.href = "/home";
-    }, 1500);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
