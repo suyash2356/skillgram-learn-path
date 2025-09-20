@@ -25,6 +25,11 @@ interface SkillDetails {
   rating: number;
   description: string;
   link: string;
+  prerequisites: string[];
+  curriculum: string[];
+  skillsGained: string[];
+  learningObjectives: string[];
+  estimatedTime: string;
 }
 
 interface CertificationDetails {
@@ -38,6 +43,11 @@ interface CertificationDetails {
   cost: string;
   description: string;
   link: string;
+  prerequisites: string[];
+  examTopics: string[];
+  studyMaterials: string[];
+  skillsValidated: string[];
+  careerPaths: string[];
 }
 
 interface PathDetails {
@@ -51,6 +61,11 @@ interface PathDetails {
   price: string;
   projects: number;
   link: string;
+  prerequisites: string[];
+  modules: string[];
+  learningOutcomes: string[];
+  tools: string[];
+  assignments: string[];
 }
 
 interface DetailsModalProps {
@@ -96,7 +111,7 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
 
       <p className="text-muted-foreground leading-relaxed">{skill.description}</p>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center space-x-3">
             <Users className="h-5 w-5 text-blue-500" />
@@ -126,6 +141,69 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardContent className="p-4 flex items-center space-x-3">
+            <Clock className="h-5 w-5 text-orange-500" />
+            <div>
+              <p className="text-sm text-muted-foreground">Estimated Time</p>
+              <p className="font-semibold">{skill.estimatedTime}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <h3 className="font-semibold mb-2 flex items-center">
+            <Target className="h-4 w-4 mr-2" />
+            Prerequisites
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {skill.prerequisites.map((prereq, index) => (
+              <Badge key={index} variant="outline">{prereq}</Badge>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-2 flex items-center">
+            <BookOpen className="h-4 w-4 mr-2" />
+            What You'll Learn
+          </h3>
+          <ul className="space-y-1">
+            {skill.learningObjectives.map((objective, index) => (
+              <li key={index} className="text-sm text-muted-foreground flex items-start">
+                <span className="text-primary mr-2">•</span>
+                {objective}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-2 flex items-center">
+            <Award className="h-4 w-4 mr-2" />
+            Skills You'll Gain
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {skill.skillsGained.map((skillGained, index) => (
+              <Badge key={index} variant="secondary">{skillGained}</Badge>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-2">Course Curriculum</h3>
+          <div className="space-y-2">
+            {skill.curriculum.map((module, index) => (
+              <div key={index} className="flex items-center text-sm">
+                <span className="bg-primary/10 text-primary px-2 py-1 rounded text-xs mr-3">{index + 1}</span>
+                <span>{module}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <Separator />
@@ -210,6 +288,68 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
         </CardContent>
       </Card>
 
+      <div className="space-y-4">
+        <div>
+          <h3 className="font-semibold mb-2 flex items-center">
+            <Target className="h-4 w-4 mr-2" />
+            Prerequisites
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {cert.prerequisites.map((prereq, index) => (
+              <Badge key={index} variant="outline">{prereq}</Badge>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-2 flex items-center">
+            <BookOpen className="h-4 w-4 mr-2" />
+            Exam Topics
+          </h3>
+          <ul className="space-y-1">
+            {cert.examTopics.map((topic, index) => (
+              <li key={index} className="text-sm text-muted-foreground flex items-start">
+                <span className="text-primary mr-2">•</span>
+                {topic}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-2 flex items-center">
+            <Award className="h-4 w-4 mr-2" />
+            Skills Validated
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {cert.skillsValidated.map((skill, index) => (
+              <Badge key={index} variant="secondary">{skill}</Badge>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-2">Study Materials</h3>
+          <div className="space-y-2">
+            {cert.studyMaterials.map((material, index) => (
+              <div key={index} className="flex items-center text-sm">
+                <span className="bg-primary/10 text-primary px-2 py-1 rounded text-xs mr-3">{index + 1}</span>
+                <span>{material}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-2">Career Paths</h3>
+          <div className="flex flex-wrap gap-2">
+            {cert.careerPaths.map((path, index) => (
+              <Badge key={index} variant="outline" className="bg-green-50 text-green-700">{path}</Badge>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <Separator />
 
       <div className="flex space-x-3">
@@ -290,12 +430,74 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
         </Card>
       </div>
 
-      <div>
-        <h3 className="font-semibold mb-3">Skills You'll Learn</h3>
-        <div className="flex flex-wrap gap-2">
-          {path.skills.map((skill, index) => (
-            <Badge key={index} variant="secondary">{skill}</Badge>
-          ))}
+      <div className="space-y-4">
+        <div>
+          <h3 className="font-semibold mb-2 flex items-center">
+            <Target className="h-4 w-4 mr-2" />
+            Prerequisites
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {path.prerequisites.map((prereq, index) => (
+              <Badge key={index} variant="outline">{prereq}</Badge>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-2 flex items-center">
+            <BookOpen className="h-4 w-4 mr-2" />
+            Learning Path Modules
+          </h3>
+          <div className="space-y-2">
+            {path.modules.map((module, index) => (
+              <div key={index} className="flex items-center text-sm">
+                <span className="bg-primary/10 text-primary px-2 py-1 rounded text-xs mr-3">{index + 1}</span>
+                <span>{module}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-2">Learning Outcomes</h3>
+          <ul className="space-y-1">
+            {path.learningOutcomes.map((outcome, index) => (
+              <li key={index} className="text-sm text-muted-foreground flex items-start">
+                <span className="text-primary mr-2">•</span>
+                {outcome}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-3">Skills You'll Learn</h3>
+          <div className="flex flex-wrap gap-2">
+            {path.skills.map((skill, index) => (
+              <Badge key={index} variant="secondary">{skill}</Badge>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-2">Tools & Technologies</h3>
+          <div className="flex flex-wrap gap-2">
+            {path.tools.map((tool, index) => (
+              <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700">{tool}</Badge>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-2">Assignments & Projects</h3>
+          <div className="space-y-2">
+            {path.assignments.map((assignment, index) => (
+              <div key={index} className="flex items-center text-sm">
+                <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs mr-3">Project {index + 1}</span>
+                <span>{assignment}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

@@ -51,7 +51,30 @@ const Explore = () => {
       rating: 4.9,
       trending: true,
       description: "Harvard's introduction to computer science and programming",
-      link: "https://www.edx.org/course/introduction-computer-science-harvardx-cs50x"
+      link: "https://www.edx.org/course/introduction-computer-science-harvardx-cs50x",
+      prerequisites: ["High school mathematics", "No prior programming experience required"],
+      curriculum: [
+        "Week 0: Scratch",
+        "Week 1: C Programming",
+        "Week 2: Arrays and Strings",
+        "Week 3: Algorithms",
+        "Week 4: Memory Management",
+        "Week 5: Data Structures",
+        "Week 6: Python",
+        "Week 7: SQL",
+        "Week 8: HTML, CSS, JavaScript",
+        "Week 9: Flask",
+        "Final Project"
+      ],
+      skillsGained: ["C Programming", "Python", "HTML/CSS", "JavaScript", "SQL", "Algorithms", "Data Structures"],
+      learningObjectives: [
+        "Think algorithmically and solve problems efficiently",
+        "Understand computer science concepts and terminology",
+        "Write programs in C, Python, and JavaScript",
+        "Build web applications using HTML, CSS, and Flask",
+        "Work with databases using SQL"
+      ],
+      estimatedTime: "10-11 weeks"
     },
     {
       name: "Responsive Web Design",
@@ -146,7 +169,24 @@ const Explore = () => {
       duration: "130 minutes",
       cost: "$150",
       description: "Design distributed systems on AWS platform",
-      link: "https://aws.amazon.com/certification/certified-solutions-architect-associate/"
+      link: "https://aws.amazon.com/certification/certified-solutions-architect-associate/",
+      prerequisites: ["Basic AWS knowledge", "Networking fundamentals", "Security concepts"],
+      examTopics: [
+        "Design Resilient Architectures (30%)",
+        "Design High-Performing Architectures (28%)",
+        "Design Secure Applications and Architectures (24%)",
+        "Design Cost-Optimized Architectures (18%)"
+      ],
+      studyMaterials: [
+        "AWS Training and Certification",
+        "AWS Whitepapers",
+        "Hands-on Labs",
+        "Practice Exams",
+        "AWS Documentation",
+        "Community Forums"
+      ],
+      skillsValidated: ["AWS Architecture", "Security", "Cost Optimization", "Performance", "Reliability"],
+      careerPaths: ["Solutions Architect", "Cloud Architect", "DevOps Engineer", "Cloud Consultant"]
     },
     {
       name: "Google Professional Cloud Architect",
@@ -221,7 +261,41 @@ const Explore = () => {
       rating: 4.8,
       price: "Free",
       projects: 20,
-      link: "https://www.freecodecamp.org/learn/"
+      link: "https://www.freecodecamp.org/learn/",
+      prerequisites: ["Basic computer literacy", "No programming experience required"],
+      modules: [
+        "Responsive Web Design",
+        "JavaScript Algorithms and Data Structures",
+        "Front End Development Libraries",
+        "Data Visualization",
+        "Back End Development and APIs",
+        "Quality Assurance",
+        "Scientific Computing with Python",
+        "Data Analysis with Python",
+        "Information Security",
+        "Machine Learning with Python"
+      ],
+      learningOutcomes: [
+        "Build responsive websites with HTML and CSS",
+        "Program interactive applications with JavaScript",
+        "Create dynamic user interfaces with React",
+        "Develop server-side applications with Node.js",
+        "Work with databases and APIs",
+        "Implement security best practices"
+      ],
+      tools: ["VS Code", "Git", "GitHub", "Node.js", "React", "Express", "MongoDB"],
+      assignments: [
+        "Build a Tribute Page",
+        "Build a Survey Form",
+        "Build a Product Landing Page",
+        "Build a Technical Documentation Page",
+        "Build a Personal Portfolio Webpage",
+        "JavaScript Calculator",
+        "Pomodoro Clock",
+        "Random Quote Machine",
+        "Markdown Previewer",
+        "Drum Machine"
+      ]
     },
     {
       title: "Data Scientist Nanodegree",
