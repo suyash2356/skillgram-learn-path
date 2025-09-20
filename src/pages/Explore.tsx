@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { DetailsModal } from "@/components/DetailsModal";
 import { 
   Search, 
   TrendingUp, 
@@ -27,6 +28,8 @@ import {
 
 const Explore = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [modalType, setModalType] = useState<'skill' | 'certification' | 'path' | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -344,19 +347,25 @@ const Explore = () => {
     }
   };
 
-  const handleViewDetails = (itemName: string, link?: string) => {
-    if (link) {
-      window.open(link, '_blank');
+  const handleViewDetails = (item: any, type: 'skill' | 'certification' | 'path') => {
+    setSelectedItem(item);
+    setModalType(type);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedItem(null);
+    setModalType(null);
+  };
+
+  const handleStartFromModal = () => {
+    if (selectedItem?.link) {
+      window.open(selectedItem.link, '_blank');
       toast({
-        title: "Opening Details",
-        description: `Opening ${itemName} details in new tab...`,
-      });
-    } else {
-      toast({
-        title: "Details",
-        description: `Opening details for ${itemName}`,
+        title: "Opening Course",
+        description: `Opening ${selectedItem.name || selectedItem.title} in new tab...`,
       });
     }
+    handleCloseModal();
   };
 
   const handleBookmark = (itemName: string) => {
@@ -514,7 +523,7 @@ const Explore = () => {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => handleViewDetails(skill.name, skill.link)}
+                            onClick={() => handleViewDetails(skill, 'skill')}
                           >
                             <ExternalLink className="h-3 w-3 mr-1" />
                             Details
@@ -614,7 +623,7 @@ const Explore = () => {
                       <div className="flex space-x-2">
                         <Button 
                           className="flex-1"
-                          onClick={() => handleViewDetails(cert.name, cert.link)}
+                          onClick={() => handleViewDetails(cert, 'certification')}
                         >
                           View Details
                         </Button>
@@ -732,7 +741,7 @@ const Explore = () => {
                           <Button 
                             variant="outline" 
                             className="w-full"
-                            onClick={() => handleViewDetails(path.title, path.link)}
+                            onClick={() => handleViewDetails(path, 'path')}
                           >
                             View Curriculum
                           </Button>
@@ -750,6 +759,14 @@ const Explore = () => {
             )}
           </TabsContent>
         </Tabs>
+
+        <DetailsModal
+          isOpen={modalType !== null}
+          onClose={handleCloseModal}
+          type={modalType || 'skill'}
+          data={selectedItem}
+          onStart={handleStartFromModal}
+        />
       </div>
     </Layout>
   );
