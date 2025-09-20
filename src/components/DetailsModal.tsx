@@ -147,7 +147,7 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
             <Clock className="h-5 w-5 text-orange-500" />
             <div>
               <p className="text-sm text-muted-foreground">Estimated Time</p>
-              <p className="font-semibold">{skill.estimatedTime}</p>
+              <p className="font-semibold">{skill.estimatedTime || 'Self-paced'}</p>
             </div>
           </CardContent>
         </Card>
@@ -160,7 +160,7 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
             Prerequisites
           </h3>
           <div className="flex flex-wrap gap-2">
-            {skill.prerequisites.map((prereq, index) => (
+            {(skill.prerequisites || []).map((prereq, index) => (
               <Badge key={index} variant="outline">{prereq}</Badge>
             ))}
           </div>
@@ -172,7 +172,7 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
             What You'll Learn
           </h3>
           <ul className="space-y-1">
-            {skill.learningObjectives.map((objective, index) => (
+            {(skill.learningObjectives || []).map((objective, index) => (
               <li key={index} className="text-sm text-muted-foreground flex items-start">
                 <span className="text-primary mr-2">•</span>
                 {objective}
@@ -187,7 +187,7 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
             Skills You'll Gain
           </h3>
           <div className="flex flex-wrap gap-2">
-            {skill.skillsGained.map((skillGained, index) => (
+            {(skill.skillsGained || []).map((skillGained, index) => (
               <Badge key={index} variant="secondary">{skillGained}</Badge>
             ))}
           </div>
@@ -196,7 +196,7 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
         <div>
           <h3 className="font-semibold mb-2">Course Curriculum</h3>
           <div className="space-y-2">
-            {skill.curriculum.map((module, index) => (
+            {(skill.curriculum || []).map((module, index) => (
               <div key={index} className="flex items-center text-sm">
                 <span className="bg-primary/10 text-primary px-2 py-1 rounded text-xs mr-3">{index + 1}</span>
                 <span>{module}</span>
@@ -295,7 +295,7 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
             Prerequisites
           </h3>
           <div className="flex flex-wrap gap-2">
-            {cert.prerequisites.map((prereq, index) => (
+            {(cert.prerequisites || []).map((prereq, index) => (
               <Badge key={index} variant="outline">{prereq}</Badge>
             ))}
           </div>
@@ -307,7 +307,7 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
             Exam Topics
           </h3>
           <ul className="space-y-1">
-            {cert.examTopics.map((topic, index) => (
+            {(cert.examTopics || []).map((topic, index) => (
               <li key={index} className="text-sm text-muted-foreground flex items-start">
                 <span className="text-primary mr-2">•</span>
                 {topic}
@@ -322,7 +322,7 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
             Skills Validated
           </h3>
           <div className="flex flex-wrap gap-2">
-            {cert.skillsValidated.map((skill, index) => (
+            {(cert.skillsValidated || []).map((skill, index) => (
               <Badge key={index} variant="secondary">{skill}</Badge>
             ))}
           </div>
@@ -331,7 +331,7 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
         <div>
           <h3 className="font-semibold mb-2">Study Materials</h3>
           <div className="space-y-2">
-            {cert.studyMaterials.map((material, index) => (
+            {(cert.studyMaterials || []).map((material, index) => (
               <div key={index} className="flex items-center text-sm">
                 <span className="bg-primary/10 text-primary px-2 py-1 rounded text-xs mr-3">{index + 1}</span>
                 <span>{material}</span>
@@ -343,7 +343,7 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
         <div>
           <h3 className="font-semibold mb-2">Career Paths</h3>
           <div className="flex flex-wrap gap-2">
-            {cert.careerPaths.map((path, index) => (
+            {(cert.careerPaths || []).map((path, index) => (
               <Badge key={index} variant="outline" className="bg-green-50 text-green-700">{path}</Badge>
             ))}
           </div>
@@ -437,7 +437,7 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
             Prerequisites
           </h3>
           <div className="flex flex-wrap gap-2">
-            {path.prerequisites.map((prereq, index) => (
+            {(path.prerequisites || []).map((prereq, index) => (
               <Badge key={index} variant="outline">{prereq}</Badge>
             ))}
           </div>
@@ -449,7 +449,7 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
             Learning Path Modules
           </h3>
           <div className="space-y-2">
-            {path.modules.map((module, index) => (
+            {(path.modules || []).map((module, index) => (
               <div key={index} className="flex items-center text-sm">
                 <span className="bg-primary/10 text-primary px-2 py-1 rounded text-xs mr-3">{index + 1}</span>
                 <span>{module}</span>
@@ -461,7 +461,7 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
         <div>
           <h3 className="font-semibold mb-2">Learning Outcomes</h3>
           <ul className="space-y-1">
-            {path.learningOutcomes.map((outcome, index) => (
+            {(path.learningOutcomes || []).map((outcome, index) => (
               <li key={index} className="text-sm text-muted-foreground flex items-start">
                 <span className="text-primary mr-2">•</span>
                 {outcome}
@@ -482,7 +482,7 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
         <div>
           <h3 className="font-semibold mb-2">Tools & Technologies</h3>
           <div className="flex flex-wrap gap-2">
-            {path.tools.map((tool, index) => (
+            {(path.tools || []).map((tool, index) => (
               <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700">{tool}</Badge>
             ))}
           </div>
@@ -491,7 +491,7 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
         <div>
           <h3 className="font-semibold mb-2">Assignments & Projects</h3>
           <div className="space-y-2">
-            {path.assignments.map((assignment, index) => (
+            {(path.assignments || []).map((assignment, index) => (
               <div key={index} className="flex items-center text-sm">
                 <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs mr-3">Project {index + 1}</span>
                 <span>{assignment}</span>
