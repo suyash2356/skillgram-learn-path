@@ -84,7 +84,26 @@ const Explore = () => {
       rating: 4.8,
       trending: true,
       description: "Learn HTML, CSS, and responsive design principles with freeCodeCamp",
-      link: "https://www.freecodecamp.org/learn/responsive-web-design/"
+      link: "https://www.freecodecamp.org/learn/responsive-web-design/",
+      prerequisites: ["Basic computer literacy", "No prior experience required"],
+      curriculum: [
+        "Basic HTML and HTML5",
+        "Basic CSS",
+        "Applied Visual Design",
+        "Applied Accessibility",
+        "Responsive Web Design Principles",
+        "CSS Flexbox",
+        "CSS Grid"
+      ],
+      skillsGained: ["HTML5", "CSS3", "Responsive Design", "Accessibility", "Flexbox", "CSS Grid"],
+      learningObjectives: [
+        "Create web pages using HTML elements",
+        "Style web pages with CSS",
+        "Build responsive layouts that work on all devices",
+        "Implement accessibility best practices",
+        "Use modern CSS layout techniques"
+      ],
+      estimatedTime: "300 hours"
     },
     {
       name: "JavaScript Algorithms and Data Structures",
@@ -94,7 +113,29 @@ const Explore = () => {
       rating: 4.9,
       trending: true,
       description: "ES6, regular expressions, basic algorithm scripting",
-      link: "https://www.freecodecamp.org/learn/javascript-algorithms-and-data-structures/"
+      link: "https://www.freecodecamp.org/learn/javascript-algorithms-and-data-structures/",
+      prerequisites: ["Basic HTML and CSS knowledge", "Programming fundamentals"],
+      curriculum: [
+        "Basic JavaScript",
+        "ES6",
+        "Regular Expressions",
+        "Debugging",
+        "Basic Data Structures",
+        "Basic Algorithm Scripting",
+        "Object Oriented Programming",
+        "Functional Programming",
+        "Intermediate Algorithm Scripting",
+        "JavaScript Algorithms and Data Structures Projects"
+      ],
+      skillsGained: ["JavaScript ES6+", "Algorithms", "Data Structures", "Problem Solving", "Functional Programming"],
+      learningObjectives: [
+        "Master JavaScript fundamentals and ES6 features",
+        "Implement common algorithms and data structures",
+        "Solve complex programming challenges",
+        "Write clean, efficient JavaScript code",
+        "Build JavaScript projects from scratch"
+      ],
+      estimatedTime: "300 hours"
     },
     {
       name: "Google Data Analytics Professional Certificate",
@@ -104,7 +145,27 @@ const Explore = () => {
       rating: 4.7,
       trending: true,
       description: "Job-ready skills in data analytics, Tableau, R, and SQL",
-      link: "https://www.coursera.org/professional-certificates/google-data-analytics"
+      link: "https://www.coursera.org/professional-certificates/google-data-analytics",
+      prerequisites: ["High school mathematics", "Basic computer skills", "No prior experience required"],
+      curriculum: [
+        "Foundations: Data, Data, Everywhere",
+        "Ask Questions to Make Data-Driven Decisions",
+        "Prepare Data for Exploration",
+        "Process Data from Dirty to Clean",
+        "Analyze Data to Answer Questions",
+        "Share Data Through the Art of Visualization",
+        "Data Analysis with R Programming",
+        "Google Data Analytics Capstone: Complete a Case Study"
+      ],
+      skillsGained: ["Data Analysis", "SQL", "Tableau", "R Programming", "Data Visualization", "Spreadsheets"],
+      learningObjectives: [
+        "Clean and organize data for analysis",
+        "Complete analysis and calculations using SQL, R, and spreadsheets",
+        "Create visualizations and dashboards using Tableau",
+        "Present findings and recommendations to stakeholders",
+        "Apply the data analysis process to real-world scenarios"
+      ],
+      estimatedTime: "3-6 months"
     },
     {
       name: "Python for Everybody",
@@ -114,7 +175,24 @@ const Explore = () => {
       rating: 4.8,
       trending: false,
       description: "Learn Python programming fundamentals from University of Michigan",
-      link: "https://www.coursera.org/specializations/python"
+      link: "https://www.coursera.org/specializations/python",
+      prerequisites: ["Basic computer literacy", "High school mathematics", "No programming experience required"],
+      curriculum: [
+        "Programming for Everybody (Getting Started with Python)",
+        "Python Data Structures",
+        "Using Python to Access Web Data",
+        "Using Databases with Python",
+        "Capstone: Retrieving, Processing, and Visualizing Data with Python"
+      ],
+      skillsGained: ["Python Programming", "Data Structures", "Web Scraping", "Database Programming", "Data Visualization"],
+      learningObjectives: [
+        "Learn Python syntax and programming concepts",
+        "Work with data structures like lists, dictionaries, and tuples",
+        "Extract data from web APIs and HTML",
+        "Store and retrieve data using databases",
+        "Create data visualizations and reports"
+      ],
+      estimatedTime: "8 months"
     },
     {
       name: "Google UX Design Professional Certificate",
@@ -124,7 +202,26 @@ const Explore = () => {
       rating: 4.8,
       trending: true,
       description: "User experience design and research fundamentals",
-      link: "https://www.coursera.org/professional-certificates/google-ux-design"
+      link: "https://www.coursera.org/professional-certificates/google-ux-design",
+      prerequisites: ["No design experience required", "Basic computer skills", "Creative mindset"],
+      curriculum: [
+        "Foundations of User Experience (UX) Design",
+        "Start the UX Design Process: Empathize, Define, and Ideate",
+        "Build Wireframes and Low-Fidelity Prototypes",
+        "Conduct UX Research and Test Early Concepts",
+        "Create High-Fidelity Designs and Prototypes in Figma",
+        "Build Dynamic User Interfaces (UI) for Websites",
+        "Design a User Experience for Social Good & Prepare for Jobs"
+      ],
+      skillsGained: ["UX Design", "User Research", "Wireframing", "Prototyping", "Figma", "Usability Testing"],
+      learningObjectives: [
+        "Understand the UX design process and methodology",
+        "Conduct user research and create user personas",
+        "Create wireframes and prototypes using Figma",
+        "Test and iterate on designs based on user feedback",
+        "Build a professional UX design portfolio"
+      ],
+      estimatedTime: "3-6 months"
     },
     {
       name: "AWS Cloud Practitioner Essentials",
@@ -134,7 +231,27 @@ const Explore = () => {
       rating: 4.7,
       trending: false,
       description: "Introduction to AWS cloud computing concepts",
-      link: "https://aws.amazon.com/training/digital/aws-cloud-practitioner-essentials/"
+      link: "https://aws.amazon.com/training/digital/aws-cloud-practitioner-essentials/",
+      prerequisites: ["Basic IT knowledge", "Understanding of networking concepts", "No AWS experience required"],
+      curriculum: [
+        "Introduction to Amazon Web Services",
+        "Compute in the Cloud",
+        "Global Infrastructure and Reliability",
+        "Networking",
+        "Storage and Databases",
+        "Security",
+        "Monitoring and Analytics",
+        "Pricing and Support"
+      ],
+      skillsGained: ["AWS Fundamentals", "Cloud Computing", "AWS Services", "Cloud Security", "Cost Management"],
+      learningObjectives: [
+        "Define what the AWS Cloud is and the basic global infrastructure",
+        "Describe basic AWS Cloud architectural principles",
+        "Describe the AWS Cloud value proposition",
+        "Describe key services on the AWS platform",
+        "Describe basic security and compliance aspects of the AWS platform"
+      ],
+      estimatedTime: "6 hours"
     },
     {
       name: "Machine Learning",
@@ -144,7 +261,34 @@ const Explore = () => {
       rating: 4.9,
       trending: true,
       description: "Stanford's famous machine learning course by Andrew Ng",
-      link: "https://www.coursera.org/learn/machine-learning"
+      link: "https://www.coursera.org/learn/machine-learning",
+      prerequisites: ["Linear algebra", "Calculus", "Programming experience (any language)", "Statistics basics"],
+      curriculum: [
+        "Introduction to Machine Learning",
+        "Linear Regression with One Variable",
+        "Linear Regression with Multiple Variables",
+        "Logistic Regression",
+        "Regularization",
+        "Neural Networks: Representation",
+        "Neural Networks: Learning",
+        "Advice for Applying Machine Learning",
+        "Machine Learning System Design",
+        "Support Vector Machines",
+        "Unsupervised Learning",
+        "Dimensionality Reduction",
+        "Anomaly Detection",
+        "Recommender Systems",
+        "Large Scale Machine Learning"
+      ],
+      skillsGained: ["Machine Learning", "Neural Networks", "MATLAB/Octave", "Algorithm Design", "Data Analysis"],
+      learningObjectives: [
+        "Understand machine learning algorithms and when to apply them",
+        "Implement ML algorithms from scratch",
+        "Apply ML to real-world problems",
+        "Understand best practices in ML system design",
+        "Evaluate and improve ML model performance"
+      ],
+      estimatedTime: "11 weeks"
     },
     {
       name: "Khan Academy Programming",
@@ -154,7 +298,30 @@ const Explore = () => {
       rating: 4.5,
       trending: false,
       description: "Intro to programming with JavaScript and web development",
-      link: "https://www.khanacademy.org/computing/computer-programming"
+      link: "https://www.khanacademy.org/computing/computer-programming",
+      prerequisites: ["Basic computer skills", "No programming experience required"],
+      curriculum: [
+        "Intro to Programming",
+        "Drawing & Animation",
+        "Interactive Programs",
+        "Games & Visualizations",
+        "Intro to HTML/CSS",
+        "HTML/JS: Making webpages interactive",
+        "HTML/JS: Making webpages interactive with jQuery",
+        "Intro to SQL",
+        "Advanced JS: Games & Visualizations",
+        "Advanced JS: Natural Simulations"
+      ],
+      skillsGained: ["JavaScript", "HTML/CSS", "Programming Logic", "Web Development", "SQL", "jQuery"],
+      learningObjectives: [
+        "Learn fundamental programming concepts",
+        "Create interactive programs and animations",
+        "Build web pages with HTML and CSS",
+        "Make web pages interactive with JavaScript",
+        "Work with databases using SQL",
+        "Develop problem-solving skills"
+      ],
+      estimatedTime: "Self-paced"
     }
   ];
 
@@ -198,7 +365,25 @@ const Explore = () => {
       duration: "2 hours",
       cost: "$200",
       description: "Design and manage scalable, reliable Google Cloud solutions",
-      link: "https://cloud.google.com/certification/cloud-architect"
+      link: "https://cloud.google.com/certification/cloud-architect",
+      prerequisites: ["3+ years cloud experience", "Google Cloud fundamentals", "Solution architecture experience"],
+      examTopics: [
+        "Designing and planning a cloud solution architecture (24%)",
+        "Managing and provisioning a solution infrastructure (20%)",
+        "Designing for security and compliance (20%)",
+        "Analyzing and optimizing technical and business processes (18%)",
+        "Managing implementations of cloud architecture (18%)"
+      ],
+      studyMaterials: [
+        "Google Cloud Training",
+        "Hands-on Labs",
+        "Practice Exams",
+        "Cloud Architecture Center",
+        "Google Cloud Documentation",
+        "Case Studies"
+      ],
+      skillsValidated: ["Cloud Architecture", "Google Cloud Platform", "Solution Design", "Security", "Cost Optimization"],
+      careerPaths: ["Cloud Architect", "Solutions Architect", "Cloud Engineer", "Technical Lead"]
     },
     {
       name: "Google IT Support Professional Certificate",
@@ -210,7 +395,25 @@ const Explore = () => {
       duration: "3-6 months",
       cost: "Free to audit",
       description: "Technical support fundamentals and troubleshooting",
-      link: "https://www.coursera.org/professional-certificates/google-it-support"
+      link: "https://www.coursera.org/professional-certificates/google-it-support",
+      prerequisites: ["Basic computer literacy", "Problem-solving mindset", "No prior IT experience required"],
+      examTopics: [
+        "Technical Support Fundamentals",
+        "Computer Networking",
+        "Operating Systems",
+        "System Administration and IT Infrastructure",
+        "IT Security: Defense against the digital dark arts"
+      ],
+      studyMaterials: [
+        "Interactive Labs",
+        "Video Lectures",
+        "Hands-on Practice",
+        "Qwiklabs",
+        "Discussion Forums",
+        "Career Resources"
+      ],
+      skillsValidated: ["Troubleshooting", "Networking", "Operating Systems", "System Administration", "Customer Service"],
+      careerPaths: ["Help Desk Technician", "IT Support Specialist", "Desktop Support", "Technical Support"]
     },
     {
       name: "Microsoft Azure Fundamentals",
@@ -222,7 +425,24 @@ const Explore = () => {
       duration: "45 minutes",
       cost: "$99",
       description: "Azure cloud services and solutions fundamentals",
-      link: "https://docs.microsoft.com/en-us/learn/certifications/azure-fundamentals/"
+      link: "https://docs.microsoft.com/en-us/learn/certifications/azure-fundamentals/",
+      prerequisites: ["Basic cloud concepts", "General technology knowledge", "No Azure experience required"],
+      examTopics: [
+        "Cloud Concepts (25-30%)",
+        "Azure Services (35-40%)",
+        "Security, Privacy, Compliance, and Trust (25-30%)",
+        "Azure Pricing and Support (25-30%)"
+      ],
+      studyMaterials: [
+        "Microsoft Learn",
+        "Free Azure Account",
+        "Practice Assessments",
+        "Azure Documentation",
+        "Learning Paths",
+        "Virtual Training Days"
+      ],
+      skillsValidated: ["Azure Services", "Cloud Computing", "Security", "Compliance", "Pricing Models"],
+      careerPaths: ["Cloud Administrator", "Azure Developer", "Solutions Architect", "DevOps Engineer"]
     },
     {
       name: "IBM Data Science Professional Certificate",
@@ -234,7 +454,28 @@ const Explore = () => {
       duration: "3-11 months",
       cost: "Free to audit",
       description: "Python, SQL, machine learning, and data visualization",
-      link: "https://www.coursera.org/professional-certificates/ibm-data-science"
+      link: "https://www.coursera.org/professional-certificates/ibm-data-science",
+      prerequisites: ["Basic math skills", "High school level statistics", "No programming experience required"],
+      examTopics: [
+        "Data Science Methodology",
+        "Python for Data Science, AI & Development",
+        "Python Project for Data Science",
+        "Databases and SQL for Data Science",
+        "Data Analysis with Python",
+        "Data Visualization with Python",
+        "Machine Learning with Python",
+        "Applied Data Science Capstone"
+      ],
+      studyMaterials: [
+        "Hands-on Labs",
+        "Jupyter Notebooks",
+        "Real-world Projects",
+        "Peer Reviews",
+        "Industry Tools",
+        "Portfolio Development"
+      ],
+      skillsValidated: ["Python", "SQL", "Data Analysis", "Machine Learning", "Data Visualization", "Data Science"],
+      careerPaths: ["Data Scientist", "Data Analyst", "Machine Learning Engineer", "Business Intelligence Analyst"]
     },
     {
       name: "Google Digital Marketing & E-commerce",
@@ -246,7 +487,27 @@ const Explore = () => {
       duration: "3-6 months",
       cost: "Free to audit",
       description: "Digital marketing strategy and e-commerce fundamentals",
-      link: "https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce"
+      link: "https://www.coursera.org/professional-certificates/google-digital-marketing-ecommerce",
+      prerequisites: ["Basic computer skills", "Interest in marketing", "No prior experience required"],
+      examTopics: [
+        "Foundations of Digital Marketing and E-commerce",
+        "Attract and Engage Customers with Digital Marketing",
+        "From Likes to Leads: Interact with Customers Online",
+        "Think Outside the Inbox: Email Marketing",
+        "Assess for Success: Marketing Analytics and Measurement",
+        "Make the Sale: Build, Launch, and Manage E-commerce Stores",
+        "Satisfaction Guaranteed: Develop Customer Loyalty Online"
+      ],
+      studyMaterials: [
+        "Interactive Content",
+        "Real-world Case Studies",
+        "Hands-on Activities",
+        "Industry Tools Access",
+        "Portfolio Projects",
+        "Career Support"
+      ],
+      skillsValidated: ["Digital Marketing", "E-commerce", "Social Media Marketing", "Email Marketing", "Analytics", "SEO"],
+      careerPaths: ["Digital Marketing Specialist", "E-commerce Manager", "Social Media Manager", "Marketing Analyst"]
     }
   ];
 
@@ -307,7 +568,30 @@ const Explore = () => {
       rating: 4.9,
       price: "$399/month",
       projects: 8,
-      link: "https://www.udacity.com/course/data-scientist-nanodegree--nd025"
+      link: "https://www.udacity.com/course/data-scientist-nanodegree--nd025",
+      prerequisites: ["Python programming", "Statistics knowledge", "SQL basics", "Linear algebra"],
+      modules: [
+        "Data Science Process",
+        "Software Engineering for Data Scientists",
+        "Data Engineering",
+        "Experiment Design and Recommendations",
+        "Data Science Projects"
+      ],
+      learningOutcomes: [
+        "Build data pipelines to collect and process data",
+        "Design and run A/B tests to make business decisions",
+        "Build recommendation engines using collaborative filtering",
+        "Deploy machine learning models to production",
+        "Communicate findings to stakeholders effectively"
+      ],
+      tools: ["Python", "Pandas", "NumPy", "Scikit-learn", "TensorFlow", "AWS", "Spark", "Jupyter"],
+      assignments: [
+        "Finding Donors for CharityML",
+        "Image Classifier Project",
+        "Data Engineering Pipeline",
+        "Experimental Design and Recommendations",
+        "Data Science Capstone Project"
+      ]
     },
     {
       title: "Cloud Development Path",
@@ -319,7 +603,35 @@ const Explore = () => {
       rating: 4.7,
       price: "$29/month",
       projects: 15,
-      link: "https://www.pluralsight.com/paths/cloud-development"
+      link: "https://www.pluralsight.com/paths/cloud-development",
+      prerequisites: ["Basic programming knowledge", "Understanding of web technologies", "System administration basics"],
+      modules: [
+        "Introduction to Cloud Computing",
+        "Amazon Web Services (AWS) Fundamentals",
+        "Microsoft Azure Fundamentals", 
+        "Container Technologies with Docker",
+        "Orchestration with Kubernetes",
+        "DevOps and CI/CD Pipelines",
+        "Cloud Security Best Practices",
+        "Monitoring and Logging in the Cloud"
+      ],
+      learningOutcomes: [
+        "Deploy applications to multiple cloud platforms",
+        "Containerize applications using Docker",
+        "Orchestrate containers with Kubernetes",
+        "Implement CI/CD pipelines for cloud deployment",
+        "Monitor and scale cloud applications",
+        "Implement cloud security best practices"
+      ],
+      tools: ["AWS CLI", "Azure CLI", "Docker", "Kubernetes", "Terraform", "Jenkins", "Grafana", "Prometheus"],
+      assignments: [
+        "Deploy a Web App to AWS",
+        "Build Docker Containers",
+        "Set up Kubernetes Cluster",
+        "Create CI/CD Pipeline",
+        "Implement Auto-scaling",
+        "Cloud Security Audit"
+      ]
     },
     {
       title: "Machine Learning Engineering for Production",
@@ -331,7 +643,31 @@ const Explore = () => {
       rating: 4.6,
       price: "$49/month",
       projects: 11,
-      link: "https://www.coursera.org/specializations/machine-learning-engineering-for-production-mlops"
+      link: "https://www.coursera.org/specializations/machine-learning-engineering-for-production-mlops",
+      prerequisites: ["Machine learning fundamentals", "Python programming", "TensorFlow experience", "Basic cloud knowledge"],
+      modules: [
+        "Introduction to Machine Learning in Production",
+        "Machine Learning Data Lifecycle in Production",
+        "Machine Learning Modeling Pipelines in Production",
+        "Deploying Machine Learning Models in Production"
+      ],
+      learningOutcomes: [
+        "Design and build production ML systems",
+        "Implement MLOps best practices and workflows",
+        "Deploy and monitor ML models at scale",
+        "Handle data versioning and model governance",
+        "Optimize model performance in production",
+        "Troubleshoot and maintain ML systems"
+      ],
+      tools: ["TensorFlow", "Kubeflow", "Apache Airflow", "Docker", "Kubernetes", "TensorBoard", "MLflow", "Google Cloud"],
+      assignments: [
+        "Deploy a TensorFlow Model",
+        "Build ML Pipeline with Apache Beam",
+        "Model Monitoring Dashboard",
+        "A/B Testing for ML Models",
+        "MLOps Pipeline Design",
+        "Production ML System Capstone"
+      ]
     },
     {
       title: "Frontend Master Path",
@@ -343,7 +679,35 @@ const Explore = () => {
       rating: 4.8,
       price: "$39.99/month",
       projects: 10,
-      link: "https://www.codecademy.com/learn/paths/front-end-engineer-career-path"
+      link: "https://www.codecademy.com/learn/paths/front-end-engineer-career-path",
+      prerequisites: ["Basic HTML/CSS knowledge", "JavaScript fundamentals", "Understanding of web development"],
+      modules: [
+        "Web Development Foundations",
+        "Building Interactive Websites",
+        "React Development",
+        "TypeScript Fundamentals",
+        "Advanced React Patterns",
+        "Testing and Debugging",
+        "Frontend Performance Optimization",
+        "Modern CSS and Styling"
+      ],
+      learningOutcomes: [
+        "Build responsive and interactive web applications",
+        "Master React ecosystem and component architecture",
+        "Write type-safe code with TypeScript",
+        "Implement testing strategies for frontend applications",
+        "Optimize application performance and accessibility",
+        "Work with modern frontend tools and workflows"
+      ],
+      tools: ["React", "TypeScript", "Webpack", "Jest", "CSS-in-JS", "Storybook", "Git", "VS Code"],
+      assignments: [
+        "Personal Portfolio Website",
+        "Interactive React Dashboard",
+        "TypeScript Todo Application",
+        "E-commerce Product Catalog",
+        "Testing Suite Implementation",
+        "Performance Optimization Project"
+      ]
     },
     {
       title: "Khan Academy Programming",
@@ -355,7 +719,37 @@ const Explore = () => {
       rating: 4.5,
       price: "Free",
       projects: 6,
-      link: "https://www.khanacademy.org/computing/computer-programming"
+      link: "https://www.khanacademy.org/computing/computer-programming",
+      prerequisites: ["Basic computer skills", "No programming experience required"],
+      modules: [
+        "Intro to Programming",
+        "Drawing & Animation",
+        "Interactive Programs",
+        "Games & Visualizations",
+        "Intro to HTML/CSS",
+        "HTML/JS: Making webpages interactive",
+        "HTML/JS: Making webpages interactive with jQuery",
+        "Intro to SQL",
+        "Advanced JS: Games & Visualizations",
+        "Advanced JS: Natural Simulations"
+      ],
+      learningOutcomes: [
+        "Learn fundamental programming concepts",
+        "Create interactive programs and animations",
+        "Build web pages with HTML and CSS",
+        "Make web pages interactive with JavaScript",
+        "Work with databases using SQL",
+        "Develop problem-solving skills"
+      ],
+      tools: ["Khan Academy IDE", "JavaScript", "HTML/CSS", "SQL", "Processing.js", "jQuery"],
+      assignments: [
+        "Animated Drawing Project",
+        "Interactive Quiz Game",
+        "Personal Webpage",
+        "Data Visualization",
+        "Memory Game",
+        "Final Capstone Project"
+      ]
     }
   ];
 
