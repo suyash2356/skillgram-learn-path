@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookmarks: {
+        Row: {
+          id: string
+          post_id: string
+          user_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          post_id: string
+          user_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          post_id?: string
+          user_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookmarks_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      comments: {
       comments: {
         Row: {
           content: string
@@ -49,6 +79,68 @@ export type Database = {
           },
         ]
       }
+      communities: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          category: string | null
+          image: string | null
+          members_count: number
+          posts_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          category?: string | null
+          image?: string | null
+          members_count?: number
+          posts_count?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          category?: string | null
+          image?: string | null
+          members_count?: number
+          posts_count?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      community_members: {
+        Row: {
+          id: string
+          community_id: string
+          user_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          community_id: string
+          user_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          community_id?: string
+          user_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_members_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       posts: {
         Row: {
           category: string | null
@@ -81,6 +173,35 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      likes: {
+        Row: {
+          id: string
+          post_id: string
+          user_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          post_id: string
+          user_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          post_id?: string
+          user_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       profiles: {
         Row: {
@@ -115,6 +236,178 @@ export type Database = {
           title?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      roadmaps: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          description: string | null
+          category: string | null
+          difficulty: string | null
+          status: string
+          progress: number
+          estimated_time: string | null
+          technologies: string[] | null
+          is_public: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          description?: string | null
+          category?: string | null
+          difficulty?: string | null
+          status?: string
+          progress?: number
+          estimated_time?: string | null
+          technologies?: string[] | null
+          is_public?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          description?: string | null
+          category?: string | null
+          difficulty?: string | null
+          status?: string
+          progress?: number
+          estimated_time?: string | null
+          technologies?: string[] | null
+          is_public?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      roadmap_steps: {
+        Row: {
+          id: string
+          roadmap_id: string
+          title: string
+          description: string | null
+          order_index: number
+          duration: string | null
+          completed: boolean
+          due_date: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          roadmap_id: string
+          title: string
+          description?: string | null
+          order_index: number
+          duration?: string | null
+          completed?: boolean
+          due_date?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          roadmap_id?: string
+          title?: string
+          description?: string | null
+          order_index?: number
+          duration?: string | null
+          completed?: boolean
+          due_date?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roadmap_steps_roadmap_id_fkey",
+            columns: ["roadmap_id"],
+            isOneToOne: false,
+            referencedRelation: "roadmaps",
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      roadmap_step_resources: {
+        Row: {
+          id: string
+          step_id: string
+          title: string
+          url: string | null
+          type: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          step_id: string
+          title: string
+          url?: string | null
+          type?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          step_id?: string
+          title?: string
+          url?: string | null
+          type?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roadmap_step_resources_step_id_fkey",
+            columns: ["step_id"],
+            isOneToOne: false,
+            referencedRelation: "roadmap_steps",
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      videos: {
+        Row: {
+          id: string
+          title: string
+          thumbnail: string | null
+          channel: string | null
+          channel_avatar: string | null
+          duration: string | null
+          views: string | null
+          upload_time: string | null
+          category: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          thumbnail?: string | null
+          channel?: string | null
+          channel_avatar?: string | null
+          duration?: string | null
+          views?: string | null
+          upload_time?: string | null
+          category?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          thumbnail?: string | null
+          channel?: string | null
+          channel_avatar?: string | null
+          duration?: string | null
+          views?: string | null
+          upload_time?: string | null
+          category?: string | null
+          created_at?: string
         }
         Relationships: []
       }

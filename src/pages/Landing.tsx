@@ -279,10 +279,13 @@ const Landing = () => {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary" asChild>
-                <Link to="/explore">
-                  Explore Features
-                </Link>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-white text-white hover:bg-white hover:text-primary"
+                onClick={() => handleAuthenticatedNavigation('/explore')}
+              >
+                Explore Features
               </Button>
             </div>
           </div>

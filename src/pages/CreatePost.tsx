@@ -18,9 +18,14 @@ import {
   Upload
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 const CreatePost = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [postType, setPostType] = useState("article");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -28,6 +33,7 @@ const CreatePost = () => {
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [category, setCategory] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const categories = [
     "Programming", "Design", "Data Science", "AI/ML", "DevOps", 
@@ -53,19 +59,26 @@ const CreatePost = () => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would normally submit to your backend
-    console.log({
-      type: postType,
+    if (!user) return;
+    setIsSubmitting(true);
+
+    const { error } = await supabase.from('posts').insert({
+      user_id: user.id,
       title,
-      description,
-      content,
+      content: description + (content ? "\n\n" + content : ""),
+      category,
       tags,
-      category
     });
-    
-    // Navigate back to home
+
+    if (error) {
+      toast({ title: 'Failed to publish post', variant: 'destructive' });
+      setIsSubmitting(false);
+      return;
+    }
+
+    toast({ title: 'Post published' });
     navigate('/home');
   };
 
@@ -247,8 +260,8 @@ const CreatePost = () => {
             <Button type="button" variant="secondary">
               Save Draft
             </Button>
-            <Button type="submit">
-              Publish Post
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Publishing...' : 'Publish Post'}
             </Button>
           </div>
         </form>

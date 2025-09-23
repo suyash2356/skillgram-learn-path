@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { CommentDialog } from "@/components/CommentDialog";
 import { ShareDialog } from "@/components/ShareDialog";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Heart, 
   MessageCircle, 
@@ -20,286 +21,195 @@ import {
   Plus
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+type DbPost = {
+  id: string;
+  user_id: string;
+  title: string;
+  content: string | null;
+  category: string | null;
+  tags: string[] | null;
+  created_at: string;
+  updated_at: string;
+};
 
-const feedData = [
-  {
-    id: 1,
-    author: {
-      name: "Dr. Sarah Chen",
-      username: "@sarahchen",
-      avatar: "/placeholder.svg",
-      title: "AI Research Scientist"
-    },
-    content: {
-      type: "article",
-      title: "The Future of Machine Learning: Trends to Watch in 2024",
-      description: "Exploring the latest developments in AI and their impact on various industries. From transformer models to quantum computing integration.",
-      image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=600&h=400&fit=crop",
-      readTime: "8 min read",
-      category: "AI/ML"
-    },
-    engagement: {
-      likes: 342,
-      comments: 28,
-      shares: 15
-    },
-    timestamp: "2 hours ago"
-  },
-  {
-    id: 2,
-    author: {
-      name: "Tech Academy",
-      username: "@techacademy",
-      avatar: "/placeholder.svg",
-      title: "Educational Platform"
-    },
-    content: {
-      type: "video",
-      title: "Complete Python Data Science Roadmap 2024",
-      description: "A comprehensive guide covering everything from basics to advanced topics. Perfect for beginners and intermediate learners.",
-      thumbnail: "https://images.unsplash.com/photo-1526379879527-8559ecfcaec0?w=600&h=400&fit=crop",
-      duration: "45:30",
-      category: "Programming"
-    },
-    engagement: {
-      likes: 892,
-      comments: 67,
-      shares: 234
-    },
-    timestamp: "4 hours ago"
-  },
-  {
-    id: 3,
-    author: {
-      name: "DevOps Master",
-      username: "@devopsmaster",
-      avatar: "/placeholder.svg",
-      title: "Senior DevOps Engineer"
-    },
-    content: {
-      type: "resource",
-      title: "Top 10 DevOps Tools Every Developer Should Know",
-      description: "Curated list of essential DevOps tools with hands-on tutorials and implementation guides.",
-      resources: [
-        { name: "Docker", type: "Containerization" },
-        { name: "Kubernetes", type: "Orchestration" },
-        { name: "Jenkins", type: "CI/CD" }
-      ],
-      category: "DevOps"
-    },
-    engagement: {
-      likes: 456,
-      comments: 34,
-      shares: 89
-    },
-    timestamp: "6 hours ago"
-  },
-  {
-    id: 4,
-    author: {
-      name: "Design Hub",
-      username: "@designhub",
-      avatar: "/placeholder.svg",
-      title: "UX/UI Community"
-    },
-    content: {
-      type: "course",
-      title: "UI/UX Design Fundamentals - Complete Certification Course",
-      description: "Master the principles of user experience and interface design. Includes real-world projects and portfolio guidance.",
-      image: "https://images.unsplash.com/photo-1559028012-481c04fa702d?w=600&h=400&fit=crop",
-      price: "Free",
-      students: "12.5k",
-      rating: 4.8,
-      category: "Design"
-    },
-    engagement: {
-      likes: 678,
-      comments: 45,
-      shares: 156
-    },
-    timestamp: "8 hours ago"
-  }
-];
+type Profile = {
+  user_id: string;
+  full_name: string | null;
+  title: string | null;
+  avatar_url: string | null;
+};
 
-const additionalFeedData = [
-  {
-    id: 5,
-    author: {
-      name: "Code Master",
-      username: "@codemaster",
-      avatar: "/placeholder.svg",
-      title: "Full Stack Developer"
-    },
-    content: {
-      type: "article",
-      title: "Building Scalable React Applications: Best Practices",
-      description: "Learn the essential patterns and practices for building maintainable and scalable React applications in 2024.",
-      image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=600&h=400&fit=crop",
-      readTime: "12 min read",
-      category: "React"
-    },
-    engagement: {
-      likes: 523,
-      comments: 41,
-      shares: 87
-    },
-    timestamp: "10 hours ago"
-  },
-  {
-    id: 6,
-    author: {
-      name: "Data Science Hub",
-      username: "@datascience",
-      avatar: "/placeholder.svg",
-      title: "Data Analytics Team"
-    },
-    content: {
-      type: "video",
-      title: "Machine Learning for Beginners - Complete Course",
-      description: "Start your journey in machine learning with this comprehensive beginner-friendly course covering all fundamentals.",
-      thumbnail: "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=600&h=400&fit=crop",
-      duration: "2:15:30",
-      category: "Data Science"
-    },
-    engagement: {
-      likes: 1247,
-      comments: 89,
-      shares: 312
-    },
-    timestamp: "12 hours ago"
-  },
-  {
-    id: 7,
-    author: {
-      name: "Web Dev Pro",
-      username: "@webdevpro",
-      avatar: "/placeholder.svg",
-      title: "Senior Frontend Engineer"
-    },
-    content: {
-      type: "resource",
-      title: "Essential CSS Grid and Flexbox Resources",
-      description: "Curated collection of the best resources to master CSS Grid and Flexbox layouts.",
-      resources: [
-        { name: "CSS Grid Generator", type: "Tool" },
-        { name: "Flexbox Guide", type: "Documentation" },
-        { name: "Layout Examples", type: "Templates" }
-      ],
-      category: "CSS"
-    },
-    engagement: {
-      likes: 334,
-      comments: 22,
-      shares: 67
-    },
-    timestamp: "14 hours ago"
-  },
-  {
-    id: 8,
-    author: {
-      name: "Career Coach",
-      username: "@careercoach",
-      avatar: "/placeholder.svg",
-      title: "Tech Career Advisor"
-    },
-    content: {
-      type: "course",
-      title: "Landing Your First Tech Job - Complete Guide",
-      description: "Everything you need to know about breaking into the tech industry, from resume tips to interview preparation.",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=400&fit=crop",
-      price: "$49",
-      students: "8.2k",
-      rating: 4.9,
-      category: "Career"
-    },
-    engagement: {
-      likes: 892,
-      comments: 156,
-      shares: 234
-    },
-    timestamp: "16 hours ago"
-  }
-];
+type FeedPost = {
+  id: string;
+  author: {
+    name: string;
+    title: string;
+    avatar: string;
+  };
+  content: {
+    type: "article";
+    title: string;
+    description: string;
+    category: string;
+    readTime?: string;
+  };
+  engagement: {
+    likes: number;
+    comments: number;
+    shares: number;
+  };
+  timestamp: string;
+};
 
 const Home = () => {
-  const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
-  const [bookmarkedPosts, setBookmarkedPosts] = useState<Set<number>>(new Set());
-  const [commentDialog, setCommentDialog] = useState<{ open: boolean; post: any }>({ open: false, post: null });
-  const [shareDialog, setShareDialog] = useState<{ open: boolean; post: any }>({ open: false, post: null });
-  const [feed, setFeed] = useState(feedData);
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [bookmarkedPosts, setBookmarkedPosts] = useState<Set<string>>(new Set());
+  const [commentDialog, setCommentDialog] = useState<{ open: boolean; post: FeedPost | null }>({ open: false, post: null });
+  const [shareDialog, setShareDialog] = useState<{ open: boolean; post: FeedPost | null }>({ open: false, post: null });
+  const [feed, setFeed] = useState<FeedPost[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMoreContent, setHasMoreContent] = useState(true);
+  const [page, setPage] = useState(0);
+  const pageSize = 10;
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const loadMoreContent = async () => {
+  const loadPosts = async (reset = false) => {
     if (isLoading) return;
-    
     setIsLoading(true);
-    
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Add more content to feed
-    const newPosts = additionalFeedData.map(post => ({
-      ...post,
-      id: post.id + feed.length // Ensure unique IDs
-    }));
-    
-    setFeed(prevFeed => [...prevFeed, ...newPosts]);
-    setHasMoreContent(false); // No more content after this load
+    const from = reset ? 0 : page * pageSize;
+    const to = from + pageSize - 1;
+    const { data: posts, error } = await supabase
+      .from("posts")
+      .select("id,user_id,title,content,category,tags,created_at,updated_at")
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+      if (error) {
+        toast({ title: "Failed to load posts", variant: "destructive" });
+        setIsLoading(false);
+        return;
+      }
+
+    const userIds = Array.from(new Set((posts || []).map(p => p.user_id)));
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("user_id,full_name,title,avatar_url")
+        .in("user_id", userIds);
+
+      if (profilesError) {
+        toast({ title: "Failed to load profiles", variant: "destructive" });
+      }
+
+      const profileByUserId = new Map<string, Profile>();
+      (profiles || []).forEach(pr => profileByUserId.set(pr.user_id, pr as Profile));
+
+      // Optionally fetch comment counts per post
+      const counts = new Map<string, number>();
+      await Promise.all(
+        (posts || []).map(async (p) => {
+          const { count } = await supabase
+            .from("comments")
+            .select("id", { count: "exact", head: true })
+            .eq("post_id", p.id);
+          counts.set(p.id, count || 0);
+        })
+      );
+
+    const mapped: FeedPost[] = (posts || []).map((p: DbPost) => {
+        const prof = profileByUserId.get(p.user_id);
+        return {
+          id: p.id,
+          author: {
+            name: prof?.full_name || "Anonymous",
+            title: prof?.title || "Learner",
+            avatar: prof?.avatar_url || "/placeholder.svg",
+          },
+          content: {
+            type: "article",
+            title: p.title,
+            description: p.content || "",
+            category: p.category || "General",
+          },
+          engagement: {
+            likes: 0,
+            comments: counts.get(p.id) || 0,
+            shares: 0,
+          },
+          timestamp: new Date(p.created_at).toLocaleString(),
+        };
+      });
+
+    setFeed(prev => reset ? mapped : [...prev, ...mapped]);
+    setHasMoreContent((posts || []).length === pageSize);
     setIsLoading(false);
-    
-    toast({ title: "New content loaded!" });
   };
 
+  useEffect(() => {
+    loadPosts(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const toggleLike = (postId: number) => {
+
+  const toggleLike = async (postId: string) => {
+    if (!user) return;
+    const hasLiked = likedPosts.has(postId);
     setLikedPosts(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(postId)) {
-        newSet.delete(postId);
-      } else {
-        newSet.add(postId);
-      }
-      return newSet;
+      const s = new Set(prev);
+      hasLiked ? s.delete(postId) : s.add(postId);
+      return s;
     });
+    if (hasLiked) {
+      await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id);
+    } else {
+      await supabase.from('likes').insert({ post_id: postId, user_id: user.id });
+    }
   };
 
-  const toggleBookmark = (postId: number) => {
+  const toggleBookmark = async (postId: string) => {
+    if (!user) return;
+    const hasBookmarked = bookmarkedPosts.has(postId);
     setBookmarkedPosts(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(postId)) {
-        newSet.delete(postId);
-        toast({ title: "Removed from saved posts" });
-      } else {
-        newSet.add(postId);
-        toast({ title: "Added to saved posts" });
-      }
-      return newSet;
+      const s = new Set(prev);
+      hasBookmarked ? s.delete(postId) : s.add(postId);
+      return s;
     });
+    if (hasBookmarked) {
+      await supabase.from('bookmarks').delete().eq('post_id', postId).eq('user_id', user.id);
+      toast({ title: "Removed from saved posts" });
+    } else {
+      await supabase.from('bookmarks').insert({ post_id: postId, user_id: user.id });
+      toast({ title: "Added to saved posts" });
+    }
   };
 
-  const openComments = (post: any) => {
-    const comments = [
-      {
-        id: 1,
-        author: "John Doe",
-        avatar: "/placeholder.svg",
-        content: "Great content! Very helpful for understanding the concepts.",
-        timestamp: "2 hours ago",
-        likes: 5
-      },
-      {
-        id: 2,
-        author: "Sarah Wilson",
-        avatar: "/placeholder.svg", 
-        content: "Thanks for sharing this. Looking forward to more content like this.",
-        timestamp: "1 hour ago",
-        likes: 2
-      }
-    ];
-    setCommentDialog({ open: true, post: { ...post, comments } });
+  const [currentComments, setCurrentComments] = useState<any[]>([]);
+
+  const openComments = async (post: FeedPost) => {
+    // Fetch real comments for the post
+    const { data, error } = await supabase
+      .from("comments")
+      .select("id, content, created_at, user_id")
+      .eq("post_id", post.id)
+      .order("created_at", { ascending: false });
+    if (error) {
+      toast({ title: "Failed to load comments", variant: "destructive" });
+      setCurrentComments([]);
+    } else {
+      setCurrentComments(
+        (data || []).map((c) => ({
+          id: c.id,
+          author: "User",
+          avatar: "/placeholder.svg",
+          content: c.content,
+          timestamp: new Date(c.created_at).toLocaleString(),
+          likes: 0,
+        }))
+      );
+    }
+    setCommentDialog({ open: true, post });
   };
 
   const openShare = (post: any) => {
@@ -394,72 +304,8 @@ const Home = () => {
                   </p>
                 </div>
 
-                {/* Media Content */}
-                {post.content.type === "video" && (
-                  <div className="relative mx-4 mb-4">
-                    <img
-                      src={post.content.thumbnail}
-                      alt={post.content.title}
-                      className="w-full h-48 object-cover rounded-lg"
-                    />
-                    <div className="absolute inset-0 bg-black/20 rounded-lg flex items-center justify-center">
-                      <div className="w-16 h-16 bg-black/50 rounded-full flex items-center justify-center">
-                        <Play className="h-8 w-8 text-white ml-1" fill="white" />
-                      </div>
-                    </div>
-                    <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
-                      {post.content.duration}
-                    </div>
-                  </div>
-                )}
-
-                {(post.content.type === "article" || post.content.type === "course") && post.content.image && (
-                  <div className="mx-4 mb-4">
-                    <img
-                      src={post.content.image}
-                      alt={post.content.title}
-                      className="w-full h-48 object-cover rounded-lg"
-                    />
-                  </div>
-                )}
-
-                {/* Course specific content */}
-                {post.content.type === "course" && (
-                  <div className="px-4 pb-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center space-x-4">
-                        <span className="flex items-center space-x-1">
-                          <Users className="h-4 w-4" />
-                          <span>{post.content.students} students</span>
-                        </span>
-                        <span className="flex items-center space-x-1">
-                          <span>⭐</span>
-                          <span>{post.content.rating}</span>
-                        </span>
-                      </div>
-                      <Badge variant="outline" className="text-success border-success">
-                        {post.content.price}
-                      </Badge>
-                    </div>
-                  </div>
-                )}
-
-                {/* Resource specific content */}
-                {post.content.type === "resource" && post.content.resources && (
-                  <div className="px-4 pb-3">
-                    <div className="grid grid-cols-1 gap-2">
-                      {post.content.resources.slice(0, 3).map((resource, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
-                          <span className="font-medium text-sm">{resource.name}</span>
-                          <Badge variant="outline" className="text-xs">{resource.type}</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Article specific content */}
-                {post.content.type === "article" && post.content.readTime && (
+                {/* Optional read time placeholder */}
+                {post.content.readTime && (
                   <div className="px-4 pb-3">
                     <div className="flex items-center text-sm text-muted-foreground">
                       <Clock className="h-4 w-4 mr-1" />
@@ -482,7 +328,7 @@ const Home = () => {
                       <Heart
                         className={`h-4 w-4 ${likedPosts.has(post.id) ? "fill-current" : ""}`}
                       />
-                      <span className="text-sm">{post.engagement.likes}</span>
+                      <span className="text-sm">{post.engagement.likes + (likedPosts.has(post.id) ? 1 : 0)}</span>
                     </Button>
 
                     <Button 
@@ -532,25 +378,33 @@ const Home = () => {
         </div>
 
         {/* Load More */}
-        {hasMoreContent && (
-          <div className="text-center py-8">
-            <Button 
-              variant="outline" 
-              className="w-full max-w-sm"
-              onClick={loadMoreContent}
-              disabled={isLoading}
-            >
-              {isLoading ? "Loading..." : "Load More Content"}
-            </Button>
-          </div>
-        )}
+        <div className="text-center py-8">
+          <Button 
+            variant="outline" 
+            className="w-full max-w-sm"
+            onClick={async () => { await loadPosts(false); setPage(p => p + 1); }}
+            disabled={isLoading || !hasMoreContent}
+          >
+            {isLoading ? "Loading..." : hasMoreContent ? "Load More" : "No more posts"}
+          </Button>
+        </div>
 
         {/* Comment Dialog */}
         <CommentDialog
           open={commentDialog.open}
           onOpenChange={(open) => setCommentDialog({ open, post: null })}
           postTitle={commentDialog.post?.content?.title || ""}
-          comments={commentDialog.post?.comments || []}
+          comments={currentComments}
+          postId={commentDialog.post?.id || ""}
+          onCommentAdded={() => {
+            // Refresh comment count for that post
+            if (commentDialog.post) {
+              setFeed(prev => prev.map(p => p.id === commentDialog.post!.id ? {
+                ...p,
+                engagement: { ...p.engagement, comments: p.engagement.comments + 1 }
+              } : p));
+            }
+          }}
         />
 
         {/* Share Dialog */}

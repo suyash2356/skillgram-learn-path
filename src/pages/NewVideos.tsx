@@ -1,81 +1,31 @@
+import { useEffect, useState } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Play, Clock, Eye, Heart, Filter } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const NewVideos = () => {
-  const videos = [
-    {
-      id: 1,
-      title: "Complete React Tutorial 2024 - Build Modern Apps",
-      thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=600&h=400&fit=crop",
-      channel: "Code Academy Pro",
-      channelAvatar: "/placeholder.svg",
-      duration: "2:45:30",
-      views: "24.5K",
-      uploadTime: "2 hours ago",
-      category: "Programming"
-    },
-    {
-      id: 2,
-      title: "Machine Learning Fundamentals Explained Simply",
-      thumbnail: "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=600&h=400&fit=crop",
-      channel: "AI Learning Hub",
-      channelAvatar: "/placeholder.svg", 
-      duration: "1:32:15",
-      views: "18.2K",
-      uploadTime: "4 hours ago",
-      category: "AI/ML"
-    },
-    {
-      id: 3,
-      title: "NEET Biology - Cell Structure and Functions",
-      thumbnail: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=600&h=400&fit=crop",
-      channel: "Medical Prep Master",
-      channelAvatar: "/placeholder.svg",
-      duration: "58:45",
-      views: "12.8K", 
-      uploadTime: "6 hours ago",
-      category: "Education"
-    },
-    {
-      id: 4,
-      title: "Modern UI/UX Design Principles and Trends",
-      thumbnail: "https://images.unsplash.com/photo-1559028012-481c04fa702d?w=600&h=400&fit=crop",
-      channel: "Design Studio",
-      channelAvatar: "/placeholder.svg",
-      duration: "1:15:20",
-      views: "9.7K",
-      uploadTime: "8 hours ago", 
-      category: "Design"
-    },
-    {
-      id: 5,
-      title: "Python Data Science Complete Course",
-      thumbnail: "https://images.unsplash.com/photo-1526379879527-8559ecfcaec0?w=600&h=400&fit=crop",
-      channel: "Data Science Pro",
-      channelAvatar: "/placeholder.svg",
-      duration: "3:22:10",
-      views: "31.4K",
-      uploadTime: "12 hours ago",
-      category: "Data Science"
-    },
-    {
-      id: 6,
-      title: "Digital Marketing Strategy for Beginners",
-      thumbnail: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=400&fit=crop",
-      channel: "Marketing Mastery",
-      channelAvatar: "/placeholder.svg",
-      duration: "1:05:30",
-      views: "7.2K",
-      uploadTime: "1 day ago",
-      category: "Business"
-    }
-  ];
+  const [videos, setVideos] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const categories = ["All", "Programming", "AI/ML", "Design", "Education", "Data Science", "Business"];
+
+  useEffect(() => {
+    const load = async () => {
+      setIsLoading(true);
+      const { data } = await supabase
+        .from('videos')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(30);
+      setVideos(data || []);
+      setIsLoading(false);
+    };
+    load();
+  }, []);
 
   return (
     <Layout>
@@ -112,7 +62,7 @@ const NewVideos = () => {
                 {/* Video Thumbnail */}
                 <div className="relative">
                   <img
-                    src={video.thumbnail}
+                    src={video.thumbnail || ''}
                     alt={video.title}
                     className="w-full h-48 object-cover rounded-t-lg"
                   />
@@ -122,10 +72,10 @@ const NewVideos = () => {
                     </div>
                   </div>
                   <div className="absolute bottom-2 right-2 bg-black/80 text-white px-2 py-1 rounded text-xs">
-                    {video.duration}
+                    {video.duration || ''}
                   </div>
                   <Badge className="absolute top-2 left-2" variant="secondary">
-                    {video.category}
+                    {video.category || 'General'}
                   </Badge>
                 </div>
 
@@ -137,21 +87,21 @@ const NewVideos = () => {
                   
                   <div className="flex items-center space-x-2 mb-3">
                     <Avatar className="h-6 w-6">
-                      <AvatarImage src={video.channelAvatar} />
-                      <AvatarFallback>{video.channel[0]}</AvatarFallback>
+                      <AvatarImage src={video.channel_avatar || '/placeholder.svg'} />
+                      <AvatarFallback>{(video.channel || 'C')[0]}</AvatarFallback>
                     </Avatar>
-                    <span className="text-sm text-muted-foreground">{video.channel}</span>
+                    <span className="text-sm text-muted-foreground">{video.channel || 'Channel'}</span>
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <div className="flex items-center space-x-4">
                       <span className="flex items-center">
                         <Eye className="h-3 w-3 mr-1" />
-                        {video.views}
+                        {video.views || ''}
                       </span>
                       <span className="flex items-center">
                         <Clock className="h-3 w-3 mr-1" />
-                        {video.uploadTime}
+                        {video.upload_time || ''}
                       </span>
                     </div>
                     <Button variant="ghost" size="sm" className="h-auto p-0">
@@ -164,10 +114,10 @@ const NewVideos = () => {
           ))}
         </div>
 
-        {/* Load More */}
+        {/* Load More placeholder */}
         <div className="text-center py-8">
-          <Button variant="outline" className="w-full max-w-sm">
-            Load More Videos
+          <Button variant="outline" className="w-full max-w-sm" disabled={isLoading}>
+            {isLoading ? 'Loading...' : 'Loaded' }
           </Button>
         </div>
       </div>

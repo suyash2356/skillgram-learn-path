@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Send, Heart } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface Comment {
   id: number;
@@ -24,26 +27,48 @@ interface CommentDialogProps {
   onOpenChange: (open: boolean) => void;
   postTitle: string;
   comments: Comment[];
+  postId?: string;
+  onCommentAdded?: () => void;
 }
 
-export const CommentDialog = ({ open, onOpenChange, postTitle, comments: initialComments }: CommentDialogProps) => {
+export const CommentDialog = ({ open, onOpenChange, postTitle, comments: initialComments, postId = "", onCommentAdded }: CommentDialogProps) => {
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState(initialComments);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-  const handleAddComment = () => {
+  useEffect(() => {
+    setComments(initialComments);
+  }, [initialComments, open]);
+
+  const handleAddComment = async () => {
     if (!newComment.trim()) return;
+    if (!user || !postId) return;
     
-    const comment: Comment = {
+    const { error } = await supabase.from("comments").insert({
+      post_id: postId,
+      user_id: user.id,
+      content: newComment.trim(),
+    });
+
+    if (error) {
+      toast({ title: "Failed to add comment", variant: "destructive" });
+      return;
+    }
+
+    const newLocal: Comment = {
       id: Date.now(),
-      author: "You",
+      author: user.email || "You",
       avatar: "/placeholder.svg",
-      content: newComment,
-      timestamp: "now",
-      likes: 0
+      content: newComment.trim(),
+      timestamp: new Date().toLocaleString(),
+      likes: 0,
     };
-    
-    setComments([comment, ...comments]);
+
+    setComments([newLocal, ...comments]);
     setNewComment("");
+    onCommentAdded && onCommentAdded();
+    toast({ title: "Comment added" });
   };
 
   return (

@@ -15,6 +15,7 @@ import CreateRoadmap from "./pages/CreateRoadmap";
 import SearchResults from "./pages/SearchResults";
 import CreatePost from "./pages/CreatePost";
 import MyRoadmaps from "./pages/MyRoadmaps";
+import RoadmapView from "./pages/RoadmapView";
 import Communities from "./pages/Communities";
 import NewVideos from "./pages/NewVideos";
 import NotFound from "./pages/NotFound";
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/search" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
           <Route path="/create-post" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
           <Route path="/roadmaps" element={<ProtectedRoute><MyRoadmaps /></ProtectedRoute>} />
+          <Route path="/roadmaps/:id" element={<ProtectedRoute><RoadmapView /></ProtectedRoute>} />
           <Route path="/communities" element={<ProtectedRoute><Communities /></ProtectedRoute>} />
           <Route path="/new-videos" element={<ProtectedRoute><NewVideos /></ProtectedRoute>} />
           <Route path="/my-posts" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

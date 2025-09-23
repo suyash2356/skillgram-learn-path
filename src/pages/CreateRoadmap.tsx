@@ -21,9 +21,12 @@ import {
   TrendingUp
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const CreateRoadmap = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [isGenerating, setIsGenerating] = useState(false);
   const [formData, setFormData] = useState({
@@ -89,18 +92,91 @@ const CreateRoadmap = () => {
   };
 
   const generateRoadmap = async () => {
+    if (!user) return;
     setIsGenerating(true);
-    
-    // Simulate AI roadmap generation
-    setTimeout(() => {
+    try {
+      const { data: inserted, error } = await supabase
+        .from('roadmaps')
+        .insert({
+          user_id: user.id,
+          title: formData.title || 'Custom Roadmap',
+          description: formData.description || null,
+          category: formData.targetRole || null,
+          difficulty: formData.skillLevel || null,
+          estimated_time: formData.timeCommitment || null,
+          technologies: formData.focusAreas,
+          status: 'not-started',
+          progress: 0,
+          is_public: false,
+        })
+        .select('id');
+
+      if (error || !inserted || inserted.length === 0) throw error || new Error('Failed to create roadmap');
+      const roadmapId = inserted[0].id as string;
+
+      const phases = [
+        { name: 'Foundation', duration: '2-3 weeks', modules: 4 },
+        { name: 'Core Skills', duration: '6-8 weeks', modules: 8 },
+        { name: 'Advanced Topics', duration: '4-6 weeks', modules: 6 },
+        { name: 'Project Portfolio', duration: '2-3 weeks', modules: 3 },
+      ];
+
+      const stepsPayload = phases.map((p, idx) => ({
+        roadmap_id: roadmapId,
+        title: p.name,
+        description: `${p.modules} modules`,
+        order_index: idx,
+        duration: p.duration,
+        completed: false,
+      }));
+
+      const { error: stepsError } = await supabase.from('roadmap_steps').insert(stepsPayload);
+      if (stepsError) {
+        // Continue even if steps fail so at least the roadmap exists
+        console.error('roadmap_steps insert failed', stepsError);
+      }
+
       toast({
-        title: "Roadmap Generated!",
-        description: "Your personalized learning roadmap has been created successfully.",
+        title: 'Roadmap Generated!',
+        description: 'Your personalized learning roadmap has been created successfully.',
       });
+      window.location.href = '/roadmaps';
+    } catch (e: any) {
+      console.error('generateRoadmap error', e);
+      toast({ title: 'Failed to generate roadmap', description: e?.message || '', variant: 'destructive' });
+    } finally {
       setIsGenerating(false);
-      // Navigate to roadmaps page
-      window.location.href = "/roadmaps";
-    }, 3000);
+    }
+  };
+
+  const [isSaving, setIsSaving] = useState(false);
+  const saveDraft = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('roadmaps')
+        .insert({
+          user_id: user.id,
+          title: formData.title || 'Untitled Roadmap',
+          description: formData.description || null,
+          category: formData.targetRole || null,
+          difficulty: formData.skillLevel || null,
+          estimated_time: formData.timeCommitment || null,
+          technologies: formData.focusAreas,
+          status: 'not-started',
+          progress: 0,
+          is_public: false,
+        });
+      if (error) throw error;
+      toast({ title: 'Draft saved' });
+      window.location.href = '/roadmaps';
+    } catch (e: any) {
+      console.error('saveDraft error', e);
+      toast({ title: 'Failed to save draft', description: e?.message || '', variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const previewRoadmap = {
@@ -318,8 +394,8 @@ const CreateRoadmap = () => {
                   </>
                 )}
               </Button>
-              <Button variant="outline" className="px-8">
-                Save Draft
+              <Button variant="outline" className="px-8" onClick={saveDraft} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save Draft'}
               </Button>
             </div>
           </div>

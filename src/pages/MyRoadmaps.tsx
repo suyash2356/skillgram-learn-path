@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,74 +26,34 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 const MyRoadmaps = () => {
-  const [roadmaps] = useState([
-    {
-      id: 1,
-      title: "Full Stack Web Development",
-      description: "Complete journey from frontend to backend development",
-      category: "Web Development",
-      progress: 65,
-      totalSteps: 12,
-      completedSteps: 8,
-      estimatedTime: "6 months",
-      difficulty: "Intermediate",
-      status: "in-progress",
-      createdAt: "2024-01-15",
-      lastUpdated: "2024-03-10",
-      technologies: ["React", "Node.js", "MongoDB", "Express"],
-      isPublic: true
-    },
-    {
-      id: 2,
-      title: "Machine Learning Fundamentals",
-      description: "Learn the basics of ML algorithms and implementation",
-      category: "AI/ML",
-      progress: 30,
-      totalSteps: 15,
-      completedSteps: 4,
-      estimatedTime: "4 months",
-      difficulty: "Advanced",
-      status: "in-progress",
-      createdAt: "2024-02-01",
-      lastUpdated: "2024-03-08",
-      technologies: ["Python", "TensorFlow", "Scikit-learn", "Pandas"],
-      isPublic: false
-    },
-    {
-      id: 3,
-      title: "AWS Cloud Architect",
-      description: "Master cloud architecture and AWS services",
-      category: "Cloud Computing",
-      progress: 100,
-      totalSteps: 10,
-      completedSteps: 10,
-      estimatedTime: "3 months",
-      difficulty: "Expert",
-      status: "completed",
-      createdAt: "2023-10-01",
-      lastUpdated: "2024-01-15",
-      technologies: ["AWS", "Docker", "Kubernetes", "Terraform"],
-      isPublic: true
-    },
-    {
-      id: 4,
-      title: "UI/UX Design Mastery",
-      description: "Comprehensive design thinking and prototyping",
-      category: "Design",
-      progress: 0,
-      totalSteps: 8,
-      completedSteps: 0,
-      estimatedTime: "2 months",
-      difficulty: "Beginner",
-      status: "not-started",
-      createdAt: "2024-03-01",
-      lastUpdated: "2024-03-01",
-      technologies: ["Figma", "Adobe XD", "Sketch", "InVision"],
-      isPublic: false
-    }
-  ]);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [roadmaps, setRoadmaps] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!user) return;
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('roadmaps')
+        .select('id,title,description,category,difficulty,status,progress,estimated_time,technologies,created_at,updated_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) {
+        toast({ title: 'Failed to load roadmaps', variant: 'destructive' });
+      } else {
+        setRoadmaps(data || []);
+      }
+      setIsLoading(false);
+    };
+    load();
+  }, [user, toast]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -200,13 +160,13 @@ const MyRoadmaps = () => {
                           </CardTitle>
                           <div className="flex items-center space-x-2">
                             <Badge variant="outline" className="text-xs">
-                              {roadmap.category}
+                              {roadmap.category || 'General'}
                             </Badge>
                             <Badge className={getStatusColor(roadmap.status)}>
                               {roadmap.status.replace('-', ' ')}
                             </Badge>
                             <Badge className={getDifficultyColor(roadmap.difficulty)}>
-                              {roadmap.difficulty}
+                              {roadmap.difficulty || 'Beginner'}
                             </Badge>
                           </div>
                         </div>
@@ -242,12 +202,12 @@ const MyRoadmaps = () => {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <span>Progress</span>
-                          <span className="font-medium">{roadmap.progress}%</span>
+                          <span className="font-medium">{roadmap.progress || 0}%</span>
                         </div>
-                        <Progress value={roadmap.progress} className="h-2" />
+                        <Progress value={roadmap.progress || 0} className="h-2" />
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{roadmap.completedSteps} of {roadmap.totalSteps} steps completed</span>
-                          <span>{roadmap.status === 'completed' ? 'Completed!' : roadmap.estimatedTime}</span>
+                          <span></span>
+                          <span>{roadmap.status === 'completed' ? 'Completed!' : (roadmap.estimated_time || '')}</span>
                         </div>
                       </div>
 
@@ -255,7 +215,7 @@ const MyRoadmaps = () => {
                       <div className="space-y-2">
                         <div className="text-sm font-medium">Technologies</div>
                         <div className="flex flex-wrap gap-1">
-                          {roadmap.technologies.map((tech) => (
+                          {(roadmap.technologies || []).map((tech: string) => (
                             <Badge key={tech} variant="secondary" className="text-xs">
                               {tech}
                             </Badge>
@@ -267,11 +227,11 @@ const MyRoadmaps = () => {
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <div className="flex items-center space-x-1">
                           <Calendar className="h-3 w-3" />
-                          <span>Created {new Date(roadmap.createdAt).toLocaleDateString()}</span>
+                          <span>Created {new Date(roadmap.created_at).toLocaleDateString()}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <Clock className="h-3 w-3" />
-                          <span>Updated {new Date(roadmap.lastUpdated).toLocaleDateString()}</span>
+                          <span>Updated {new Date(roadmap.updated_at).toLocaleDateString()}</span>
                         </div>
                       </div>
 
@@ -280,6 +240,7 @@ const MyRoadmaps = () => {
                         <Button 
                           className="flex-1" 
                           variant={roadmap.status === 'completed' ? 'secondary' : 'default'}
+                          onClick={() => window.location.href = `/roadmaps/${roadmap.id}`}
                         >
                           {roadmap.status === 'completed' ? (
                             <>
@@ -298,7 +259,7 @@ const MyRoadmaps = () => {
                             </>
                           )}
                         </Button>
-                        <Button variant="outline">
+                        <Button variant="outline" onClick={() => window.location.href = `/roadmaps/${roadmap.id}`}>
                           <Map className="h-4 w-4 mr-2" />
                           View
                         </Button>
