@@ -48,6 +48,7 @@ export const Layout = ({ children }: LayoutProps) => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Search initiated with query:", searchQuery);
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }

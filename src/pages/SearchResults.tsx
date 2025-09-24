@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Layout } from "@/components/Layout";
 import { useSearchParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,10 +23,11 @@ import {
 const SearchResults = () => {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
+  console.log("SearchResults component received query:", query);
   const [loading, setLoading] = useState(false);
 
   // Mock data based on search query
-  const getSearchData = (searchTerm: string) => {
+  const getSearchData = useCallback((searchTerm: string) => {
     const lowerQuery = searchTerm.toLowerCase();
     
     // Topic description
@@ -105,7 +106,7 @@ const SearchResults = () => {
     ];
 
     return { topicDescription, recommendations };
-  };
+  }, []);
 
   const { topicDescription, recommendations } = getSearchData(query);
 
@@ -207,7 +208,7 @@ const SearchResults = () => {
                   <h3 className="font-semibold mb-3">Quick Actions</h3>
                   <div className="space-y-2">
                     <Button asChild className="w-full">
-                      <Link to={`/create-roadmap?topic=${encodeURIComponent(query)}`}>
+                      <Link to={`/create-roadmap?topic=${encodeURIComponent(query)}&recommendations=${encodeURIComponent(JSON.stringify(recommendations))}`}>
                         <Map className="h-4 w-4 mr-2" />
                         Create AI Roadmap
                       </Link>

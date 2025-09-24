@@ -29,6 +29,15 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { TypedSupabaseClient } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
+
+const rawSupabase = supabase;
+const supabaseTyped = rawSupabase as TypedSupabaseClient;
+
+const getTypedTable = <T extends keyof Database['public']['Tables']>(tableName: T) => {
+  return supabaseTyped.from(tableName as any);
+};
 
 const MyRoadmaps = () => {
   const { user } = useAuth();
@@ -54,6 +63,28 @@ const MyRoadmaps = () => {
     };
     load();
   }, [user, toast]);
+
+  const handleDeleteRoadmap = async (roadmapId: string) => {
+    if (confirm('Are you sure you want to delete this roadmap? This action cannot be undone.')) {
+      try {
+        const { error } = await getTypedTable('roadmaps')
+          .delete()
+          .eq('id', roadmapId);
+
+        if (error) throw error;
+
+        setRoadmaps(prev => prev.filter(r => r.id !== roadmapId));
+        toast({
+          title: 'Roadmap Deleted!',
+          description: 'The roadmap and all its associated steps and resources have been removed.',
+          variant: 'success'
+        });
+      } catch (e: any) {
+        console.error('deleteRoadmap error', e);
+        toast({ title: 'Failed to delete roadmap', description: e?.message || '', variant: 'destructive' });
+      }
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -185,7 +216,10 @@ const MyRoadmaps = () => {
                               <Share2 className="h-4 w-4 mr-2" />
                               Share
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleDeleteRoadmap(roadmap.id)}
+                            >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete
                             </DropdownMenuItem>
