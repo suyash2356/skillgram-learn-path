@@ -4,57 +4,106 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  MapPin, 
-  Calendar, 
-  ExternalLink, 
-  Award, 
-  BookOpen, 
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  MapPin,
+  Calendar,
+  ExternalLink,
+  Award,
+  BookOpen,
   TrendingUp,
   Users,
   Star,
-  Target
+  Target,
+  X,
+  Plus,
+  Upload
 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 const Profile = () => {
-  const userProfile = {
-    name: "Alex Johnson",
-    title: "Full Stack Developer & AI Enthusiast",
-    location: "San Francisco, CA",
-    joinDate: "January 2023",
-    avatar: "/placeholder.svg",
-    bio: "Passionate about building scalable applications and exploring the intersection of AI and web development. Always learning, always growing.",
+  const { user } = useAuth();
+  const storageKey = `profile:${user?.id || 'guest'}`;
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const emptyProfile = {
+    name: "",
+    title: "",
+    location: "",
+    joinDate: "",
+    avatar: "",
+    bio: "",
     stats: {
-      skillsLearning: 12,
-      roadmapsCompleted: 8,
-      followers: 1234,
-      following: 567
+      skillsLearning: 0,
+      roadmapsCompleted: 0,
+      followers: 0,
+      following: 0
     },
-    skills: [
-      { name: "JavaScript", level: 90, category: "Programming" },
-      { name: "React", level: 85, category: "Frontend" },
-      { name: "Node.js", level: 80, category: "Backend" },
-      { name: "Python", level: 75, category: "Programming" },
-      { name: "Machine Learning", level: 60, category: "AI/ML" },
-      { name: "DevOps", level: 65, category: "Infrastructure" }
-    ],
-    achievements: [
-      { name: "JavaScript Master", description: "Completed advanced JS roadmap", icon: "🏆", date: "March 2024" },
-      { name: "React Ninja", description: "Built 5 React applications", icon: "⚛️", date: "February 2024" },
-      { name: "AI Pioneer", description: "Completed ML fundamentals", icon: "🤖", date: "January 2024" },
-      { name: "Community Helper", description: "Helped 50+ learners", icon: "🤝", date: "December 2023" }
-    ],
-    learningPath: [
-      { skill: "Advanced React Patterns", progress: 75, totalLessons: 24 },
-      { skill: "Machine Learning with Python", progress: 45, totalLessons: 32 },
-      { skill: "System Design", progress: 30, totalLessons: 18 }
-    ],
-    recentActivity: [
-      { type: "completed", content: "Finished 'Advanced Hooks in React'", time: "2 hours ago" },
-      { type: "shared", content: "Shared 'Top 10 DevOps Tools' article", time: "5 hours ago" },
-      { type: "joined", content: "Joined 'AI/ML Study Group'", time: "1 day ago" },
-      { type: "achievement", content: "Earned 'React Ninja' badge", time: "2 days ago" }
-    ]
+    skills: [] as { name: string; level: number; category: string }[],
+    achievements: [] as { name: string; description: string; icon: string; date: string }[],
+    learningPath: [] as { skill: string; progress: number; totalLessons: number }[],
+    recentActivity: [] as { type: string; content: string; time: string }[],
+    portfolioUrl: "",
+  };
+
+  const [profile, setProfile] = useState(emptyProfile);
+  const [editMode, setEditMode] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        setProfile({ ...emptyProfile, ...JSON.parse(saved) });
+      } else {
+        setProfile(emptyProfile);
+      }
+    } catch {
+      setProfile(emptyProfile);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(profile));
+    } catch {}
+  }, [profile, storageKey]);
+
+  const initials = (profile.name || 'User').split(' ').map(n => n[0]).join('');
+
+  const handleProfileField = (key: string, value: any) => setProfile(prev => ({ ...prev, [key]: value }));
+  const handleStat = (key: keyof typeof emptyProfile.stats, value: number) => setProfile(prev => ({ ...prev, stats: { ...prev.stats, [key]: value } }));
+
+  const addSkill = () => setProfile(prev => ({ ...prev, skills: [ ...(prev.skills || []), { name: '', level: 0, category: '' } ] }));
+  const removeSkill = (idx: number) => setProfile(prev => ({ ...prev, skills: (prev.skills || []).filter((_, i) => i !== idx) }));
+
+  const addAchievement = () => setProfile(prev => ({ ...prev, achievements: [ ...(prev.achievements || []), { name: '', description: '', icon: '🏆', date: '' } ] }));
+  const removeAchievement = (idx: number) => setProfile(prev => ({ ...prev, achievements: (prev.achievements || []).filter((_, i) => i !== idx) }));
+
+  const addLearningPath = () => setProfile(prev => ({ ...prev, learningPath: [ ...(prev.learningPath || []), { skill: '', progress: 0, totalLessons: 0 } ] }));
+  const removeLearningPath = (idx: number) => setProfile(prev => ({ ...prev, learningPath: (prev.learningPath || []).filter((_, i) => i !== idx) }));
+
+  const addActivity = () => setProfile(prev => ({ ...prev, recentActivity: [ ...(prev.recentActivity || []), { type: 'completed', content: '', time: '' } ] }));
+  const removeActivity = (idx: number) => setProfile(prev => ({ ...prev, recentActivity: (prev.recentActivity || []).filter((_, i) => i !== idx) }));
+
+  const startEdit = () => setEditMode(true);
+  const cancelEdit = () => setEditMode(false);
+  const saveEdit = () => setEditMode(false);
+
+  const onPickAvatar = () => fileInputRef.current?.click();
+  const onAvatarSelected: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      handleProfileField('avatar', dataUrl);
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -64,47 +113,77 @@ const Profile = () => {
         <Card className="mb-6 shadow-card">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
-              <Avatar className="h-24 w-24">
-                <AvatarImage src={userProfile.avatar} />
-                <AvatarFallback className="text-2xl">
-                  {userProfile.name.split(' ').map(n => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={profile.avatar} />
+                  <AvatarFallback className="text-2xl">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                {editMode && (
+                  <Button size="sm" variant="outline" className="absolute -bottom-2 left-1/2 -translate-x-1/2" onClick={onPickAvatar}>
+                    <Upload className="h-4 w-4 mr-1" /> Upload
+                  </Button>
+                )}
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onAvatarSelected} />
+              </div>
 
               <div className="flex-1 space-y-4">
                 <div>
-                  <h1 className="text-3xl font-bold">{userProfile.name}</h1>
-                  <p className="text-lg text-muted-foreground">{userProfile.title}</p>
-                  <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
-                    <div className="flex items-center space-x-1">
-                      <MapPin className="h-4 w-4" />
-                      <span>{userProfile.location}</span>
+                  {editMode ? (
+                    <div className="space-y-2">
+                      <Input placeholder="Your Name" value={profile.name} onChange={(e) => handleProfileField('name', e.target.value)} />
+                      <Input placeholder="Title" value={profile.title} onChange={(e) => handleProfileField('title', e.target.value)} />
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        <Input placeholder="Location" value={profile.location} onChange={(e) => handleProfileField('location', e.target.value)} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        <Input placeholder="Joined (e.g., January 2025)" value={profile.joinDate} onChange={(e) => handleProfileField('joinDate', e.target.value)} />
+                      </div>
+                      <Input placeholder="Avatar URL" value={profile.avatar} onChange={(e) => handleProfileField('avatar', e.target.value)} />
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>Joined {userProfile.joinDate}</span>
-                    </div>
-                  </div>
+                  ) : (
+                    <>
+                      <h1 className="text-3xl font-bold">{profile.name || 'Your Name'}</h1>
+                      <p className="text-lg text-muted-foreground">{profile.title || 'Your Title'}</p>
+                      <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
+                        <div className="flex items-center space-x-1">
+                          <MapPin className="h-4 w-4" />
+                          <span>{profile.location || 'Your Location'}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Calendar className="h-4 w-4" />
+                          <span>Joined {profile.joinDate || '—'}</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
 
-                <p className="text-foreground max-w-2xl">{userProfile.bio}</p>
+                {editMode ? (
+                  <Textarea placeholder="Short bio..." value={profile.bio} onChange={(e) => handleProfileField('bio', e.target.value)} rows={3} />
+                ) : (
+                  <p className="text-foreground max-w-2xl">{profile.bio || 'Tell the world about yourself...'}</p>
+                )}
 
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="grid grid-cols-4 gap-6 text-center">
                     <div>
-                      <div className="text-2xl font-bold text-primary">{userProfile.stats.skillsLearning}</div>
+                      <div className="text-2xl font-bold text-primary">{profile.stats.skillsLearning}</div>
                       <div className="text-xs text-muted-foreground">Skills Learning</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-primary">{userProfile.stats.roadmapsCompleted}</div>
+                      <div className="text-2xl font-bold text-primary">{profile.stats.roadmapsCompleted}</div>
                       <div className="text-xs text-muted-foreground">Roadmaps Done</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-primary">{userProfile.stats.followers}</div>
+                      <div className="text-2xl font-bold text-primary">{profile.stats.followers}</div>
                       <div className="text-xs text-muted-foreground">Followers</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-primary">{userProfile.stats.following}</div>
+                      <div className="text-2xl font-bold text-primary">{profile.stats.following}</div>
                       <div className="text-xs text-muted-foreground">Following</div>
                     </div>
                   </div>
@@ -112,18 +191,32 @@ const Profile = () => {
               </div>
 
               <div className="flex flex-col space-y-2">
-                <Button className="w-full">Edit Profile</Button>
-                <Button variant="outline" className="w-full">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Portfolio
-                </Button>
+                {editMode ? (
+                  <>
+                    <Button className="w-full" onClick={saveEdit}>Save</Button>
+                    <Button variant="outline" className="w-full" onClick={cancelEdit}>Cancel</Button>
+                  </>
+                ) : (
+                  <>
+                    <Button className="w-full" onClick={startEdit}>Edit Profile</Button>
+                    <Button variant="outline" className="w-full">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      {profile.portfolioUrl ? (
+                        <a href={profile.portfolioUrl} target="_blank" rel="noreferrer">Portfolio</a>
+                      ) : 'Portfolio'}
+                    </Button>
+                    {editMode && (
+                      <Input placeholder="Portfolio URL" value={profile.portfolioUrl} onChange={(e) => handleProfileField('portfolioUrl', e.target.value)} />
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Tabs Content */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="skills">Skills</TabsTrigger>
@@ -142,10 +235,17 @@ const Profile = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {userProfile.learningPath.map((item, index) => (
+                  {(profile.learningPath || []).length === 0 && (
+                    <div className="text-sm text-muted-foreground">No current learning yet.</div>
+                  )}
+                  {profile.learningPath.map((item, index) => (
                     <div key={index} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <h4 className="font-medium text-sm">{item.skill}</h4>
+                      <div className="flex justify-between items-center gap-2">
+                        {editMode ? (
+                          <Input placeholder="Skill/Subject" value={item.skill} onChange={(e) => setProfile(prev => ({ ...prev, learningPath: prev.learningPath.map((lp, i) => i === index ? { ...lp, skill: e.target.value } : lp) }))} />
+                        ) : (
+                          <h4 className="font-medium text-sm">{item.skill}</h4>
+                        )}
                         <span className="text-sm text-muted-foreground">{item.progress}%</span>
                       </div>
                       <div className="w-full bg-muted rounded-full h-2">
@@ -154,11 +254,24 @@ const Profile = () => {
                           style={{ width: `${item.progress}%` }}
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {Math.round((item.progress / 100) * item.totalLessons)} of {item.totalLessons} lessons
-                      </p>
+                      <div className="flex items-center gap-2">
+                        {editMode ? (
+                          <>
+                            <Input type="number" placeholder="Progress %" value={item.progress} onChange={(e) => setProfile(prev => ({ ...prev, learningPath: prev.learningPath.map((lp, i) => i === index ? { ...lp, progress: Number(e.target.value) } : lp) }))} />
+                            <Input type="number" placeholder="Total lessons" value={item.totalLessons} onChange={(e) => setProfile(prev => ({ ...prev, learningPath: prev.learningPath.map((lp, i) => i === index ? { ...lp, totalLessons: Number(e.target.value) } : lp) }))} />
+                            <Button variant="ghost" size="sm" onClick={() => removeLearningPath(index)}><X className="h-4 w-4" /></Button>
+                          </>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            {Math.round((item.progress / 100) * item.totalLessons)} of {item.totalLessons} lessons
+                          </p>
+                        )}
+                      </div>
                     </div>
                   ))}
+                  {editMode && (
+                    <Button variant="outline" size="sm" onClick={addLearningPath} className="mt-2"><Plus className="h-4 w-4 mr-1" /> Add Item</Button>
+                  )}
                 </CardContent>
               </Card>
 
@@ -171,7 +284,10 @@ const Profile = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {userProfile.recentActivity.map((activity, index) => (
+                  {(profile.recentActivity || []).length === 0 && (
+                    <div className="text-sm text-muted-foreground">No activity yet.</div>
+                  )}
+                  {profile.recentActivity.map((activity, index) => (
                     <div key={index} className="flex items-start space-x-3">
                       <div className={`w-2 h-2 rounded-full mt-2 ${
                         activity.type === 'completed' ? 'bg-success' :
@@ -180,11 +296,21 @@ const Profile = () => {
                         'bg-yellow-500'
                       }`} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm">{activity.content}</p>
+                        {editMode ? (
+                          <Input value={activity.content} onChange={(e) => setProfile(prev => ({ ...prev, recentActivity: prev.recentActivity.map((a, i) => i === index ? { ...a, content: e.target.value } : a) }))} />
+                        ) : (
+                          <p className="text-sm">{activity.content}</p>
+                        )}
                         <p className="text-xs text-muted-foreground">{activity.time}</p>
                       </div>
+                      {editMode && (
+                        <Button variant="ghost" size="sm" onClick={() => removeActivity(index)}><X className="h-4 w-4" /></Button>
+                      )}
                     </div>
                   ))}
+                  {editMode && (
+                    <Button variant="outline" size="sm" onClick={addActivity} className="mt-2"><Plus className="h-4 w-4 mr-1" /> Add Activity</Button>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -197,16 +323,33 @@ const Profile = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid gap-6">
-                  {userProfile.skills.map((skill, index) => (
+                  {(profile.skills || []).length === 0 && (
+                    <div className="text-sm text-muted-foreground">No skills yet.</div>
+                  )}
+                  {profile.skills.map((skill, index) => (
                     <div key={index} className="space-y-2">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center space-x-3">
-                          <h3 className="font-medium">{skill.name}</h3>
-                          <Badge variant="outline" className="text-xs">
-                            {skill.category}
-                          </Badge>
+                          {editMode ? (
+                            <>
+                              <Input placeholder="Skill name" value={skill.name} onChange={(e) => setProfile(prev => ({ ...prev, skills: prev.skills.map((s, i) => i === index ? { ...s, name: e.target.value } : s) }))} />
+                              <Input placeholder="Category" value={skill.category} onChange={(e) => setProfile(prev => ({ ...prev, skills: prev.skills.map((s, i) => i === index ? { ...s, category: e.target.value } : s) }))} />
+                            </>
+                          ) : (
+                            <>
+                              <h3 className="font-medium">{skill.name}</h3>
+                              <Badge variant="outline" className="text-xs">{skill.category}</Badge>
+                            </>
+                          )}
                         </div>
-                        <span className="text-sm font-medium">{skill.level}%</span>
+                        {editMode ? (
+                          <div className="flex items-center gap-2">
+                            <Input type="number" placeholder="%" value={skill.level} onChange={(e) => setProfile(prev => ({ ...prev, skills: prev.skills.map((s, i) => i === index ? { ...s, level: Number(e.target.value) } : s) }))} className="w-20" />
+                            <Button variant="ghost" size="sm" onClick={() => removeSkill(index)}><X className="h-4 w-4" /></Button>
+                          </div>
+                        ) : (
+                          <span className="text-sm font-medium">{skill.level}%</span>
+                        )}
                       </div>
                       <div className="w-full bg-muted rounded-full h-2">
                         <div
@@ -216,6 +359,9 @@ const Profile = () => {
                       </div>
                     </div>
                   ))}
+                  {editMode && (
+                    <Button variant="outline" size="sm" onClick={addSkill}><Plus className="h-4 w-4 mr-1" /> Add Skill</Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -223,21 +369,43 @@ const Profile = () => {
 
           <TabsContent value="achievements" className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
-              {userProfile.achievements.map((achievement, index) => (
+              {(profile.achievements || []).length === 0 && (
+                <Card className="shadow-card">
+                  <CardContent className="p-6 text-sm text-muted-foreground">No achievements yet.</CardContent>
+                </Card>
+              )}
+              {profile.achievements.map((achievement, index) => (
                 <Card key={index} className="shadow-card hover:shadow-elevated transition-all duration-300">
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-4">
-                      <div className="text-3xl">{achievement.icon}</div>
+                      <div className="text-3xl">{achievement.icon || '🏆'}</div>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-lg">{achievement.name}</h3>
-                        <p className="text-muted-foreground text-sm mb-2">{achievement.description}</p>
-                        <p className="text-xs text-muted-foreground">{achievement.date}</p>
+                        {editMode ? (
+                          <div className="space-y-2">
+                            <Input placeholder="Name" value={achievement.name} onChange={(e) => setProfile(prev => ({ ...prev, achievements: prev.achievements.map((a, i) => i === index ? { ...a, name: e.target.value } : a) }))} />
+                            <Input placeholder="Description" value={achievement.description} onChange={(e) => setProfile(prev => ({ ...prev, achievements: prev.achievements.map((a, i) => i === index ? { ...a, description: e.target.value } : a) }))} />
+                            <div className="flex items-center gap-2">
+                              <Input placeholder="Icon (emoji)" value={achievement.icon} onChange={(e) => setProfile(prev => ({ ...prev, achievements: prev.achievements.map((a, i) => i === index ? { ...a, icon: e.target.value } : a) }))} className="w-32" />
+                              <Input placeholder="Date" value={achievement.date} onChange={(e) => setProfile(prev => ({ ...prev, achievements: prev.achievements.map((a, i) => i === index ? { ...a, date: e.target.value } : a) }))} />
+                              <Button variant="ghost" size="sm" onClick={() => removeAchievement(index)}><X className="h-4 w-4" /></Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <h3 className="font-semibold text-lg">{achievement.name}</h3>
+                            <p className="text-muted-foreground text-sm mb-2">{achievement.description}</p>
+                            <p className="text-xs text-muted-foreground">{achievement.date}</p>
+                          </>
+                        )}
                       </div>
                       <Award className="h-5 w-5 text-yellow-500" />
                     </div>
                   </CardContent>
                 </Card>
               ))}
+              {editMode && (
+                <Button variant="outline" size="sm" onClick={addAchievement}><Plus className="h-4 w-4 mr-1" /> Add Achievement</Button>
+              )}
             </div>
           </TabsContent>
 
@@ -248,7 +416,10 @@ const Profile = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {userProfile.recentActivity.map((activity, index) => (
+                  {(profile.recentActivity || []).length === 0 && (
+                    <div className="text-sm text-muted-foreground">No activity yet.</div>
+                  )}
+                  {profile.recentActivity.map((activity, index) => (
                     <div key={index} className="flex items-start space-x-4 pb-4 border-b last:border-b-0">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                         activity.type === 'completed' ? 'bg-success/10 text-success' :
@@ -262,11 +433,21 @@ const Profile = () => {
                         {activity.type === 'achievement' && <Award className="h-5 w-5" />}
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium">{activity.content}</p>
+                        {editMode ? (
+                          <Input value={activity.content} onChange={(e) => setProfile(prev => ({ ...prev, recentActivity: prev.recentActivity.map((a, i) => i === index ? { ...a, content: e.target.value } : a) }))} />
+                        ) : (
+                          <p className="font-medium">{activity.content}</p>
+                        )}
                         <p className="text-sm text-muted-foreground">{activity.time}</p>
                       </div>
+                      {editMode && (
+                        <Button variant="ghost" size="sm" onClick={() => removeActivity(index)}><X className="h-4 w-4" /></Button>
+                      )}
                     </div>
                   ))}
+                  {editMode && (
+                    <Button variant="outline" size="sm" onClick={addActivity}><Plus className="h-4 w-4 mr-1" /> Add Activity</Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

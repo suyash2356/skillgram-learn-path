@@ -19,6 +19,9 @@ import RoadmapView from "./pages/RoadmapView";
 import Communities from "./pages/Communities";
 import NewVideos from "./pages/NewVideos";
 import NotFound from "./pages/NotFound";
+import Settings from "./pages/Settings";
+import MyPosts from "./pages/MyPosts";
+import SavedPosts from "./pages/SavedPosts";
 
 const queryClient = new QueryClient();
 
@@ -43,10 +46,10 @@ const App = () => (
           <Route path="/roadmaps/:id" element={<ProtectedRoute><RoadmapView /></ProtectedRoute>} />
           <Route path="/communities" element={<ProtectedRoute><Communities /></ProtectedRoute>} />
           <Route path="/new-videos" element={<ProtectedRoute><NewVideos /></ProtectedRoute>} />
-          <Route path="/my-posts" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/saved-posts" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/my-posts" element={<ProtectedRoute><MyPosts /></ProtectedRoute>} />
+          <Route path="/saved-posts" element={<ProtectedRoute><SavedPosts /></ProtectedRoute>} />
           <Route path="/support" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
           </Routes>

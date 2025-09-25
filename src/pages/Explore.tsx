@@ -862,26 +862,26 @@ const Explore = () => {
     <Layout>
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4">
+        <div className="text-center mb-6 md:mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold mb-3 md:mb-4">
             Explore{" "}
             <span className="bg-gradient-primary bg-clip-text text-transparent">
               Trending Content
             </span>
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto">
             Discover trending skills, popular technologies, and what's hot in the learning community
           </p>
         </div>
 
         {/* Search */}
-        <Card className="mb-8 shadow-card">
-          <CardContent className="p-6">
+        <Card className="mb-6 md:mb-8 shadow-card">
+          <CardContent className="p-4 md:p-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 placeholder="Search skills, technologies, or certifications..."
-                className="pl-10 h-12 text-lg"
+                className="pl-10 h-10 md:h-12 text-base md:text-lg"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -890,28 +890,28 @@ const Explore = () => {
         </Card>
 
         {/* Categories */}
-        <Card className="mb-8 shadow-card">
+        <Card className="mb-6 md:mb-8 shadow-card">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
+            <CardTitle className="flex items-center space-x-2 text-lg md:text-xl">
               <TrendingUp className="h-5 w-5" />
               <span>Popular Categories</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
               {categories.map((category, index) => {
                 const Icon = category.icon;
                 return (
                   <Card 
                     key={index} 
-                    className="p-4 text-center hover:shadow-elevated transition-all duration-300 cursor-pointer"
+                    className="p-3 md:p-4 text-center hover:shadow-elevated transition-all duration-300 cursor-pointer"
                     onClick={() => handleCategoryClick(category.name)}
                   >
-                    <div className={`w-12 h-12 ${category.color} rounded-lg flex items-center justify-center mx-auto mb-3`}>
-                      <Icon className="h-6 w-6 text-white" />
+                    <div className={`w-10 h-10 md:w-12 md:h-12 ${category.color} rounded-lg flex items-center justify-center mx-auto mb-2 md:mb-3`}>
+                      <Icon className="h-5 w-5 md:h-6 md:w-6 text-white" />
                     </div>
-                    <h3 className="font-semibold text-sm mb-1">{category.name}</h3>
-                    <p className="text-xs text-muted-foreground">{category.count} resources</p>
+                    <h3 className="font-semibold text-xs md:text-sm mb-1 break-words">{category.name}</h3>
+                    <p className="text-[10px] md:text-xs text-muted-foreground">{category.count} resources</p>
                   </Card>
                 );
               })}
@@ -921,11 +921,13 @@ const Explore = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="skills" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="skills">🔥 Trending Skills</TabsTrigger>
-            <TabsTrigger value="certifications">🏆 Popular Certifications</TabsTrigger>
-            <TabsTrigger value="paths">🚀 Hot Learning Paths</TabsTrigger>
-          </TabsList>
+          <div className="w-full overflow-x-auto">
+            <TabsList className="flex w-max md:w-full md:grid md:grid-cols-3 gap-2 md:gap-0">
+              <TabsTrigger value="skills" className="whitespace-nowrap">🔥 Trending Skills</TabsTrigger>
+              <TabsTrigger value="certifications" className="whitespace-nowrap">🏆 Popular Certifications</TabsTrigger>
+              <TabsTrigger value="paths" className="whitespace-nowrap">🚀 Hot Learning Paths</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="skills" className="space-y-6">
             {searchQuery && (

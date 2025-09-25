@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { 
   ImageIcon, 
   Video, 
@@ -34,6 +34,7 @@ const CreatePost = () => {
   const [newTag, setNewTag] = useState("");
   const [category, setCategory] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const categories = [
     "Programming", "Design", "Data Science", "AI/ML", "DevOps", 
@@ -57,6 +58,21 @@ const CreatePost = () => {
 
   const removeTag = (tagToRemove: string) => {
     setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleUploadClick = () => fileInputRef.current?.click();
+  const onFilesSelected: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        setContent(prev => `${prev}\n\n![image](${dataUrl})`);
+      };
+      reader.readAsDataURL(file);
+    });
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -155,18 +171,16 @@ const CreatePost = () => {
 
               <div>
                 <Label htmlFor="category">Category *</Label>
-                <select
-                  id="category"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full p-2 border border-border rounded-md"
-                  required
-                >
-                  <option value="">Select a category</option>
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger id="category" className="w-full">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
@@ -197,54 +211,23 @@ const CreatePost = () => {
             </CardContent>
           </Card>
 
-          {/* Content */}
+          {/* Media Upload Only */}
           <Card className="shadow-card">
             <CardHeader>
-              <CardTitle>Content</CardTitle>
+              <CardTitle>Upload Media</CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="write" className="space-y-4">
-                <TabsList>
-                  <TabsTrigger value="write">Write</TabsTrigger>
-                  <TabsTrigger value="preview">Preview</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="write" className="space-y-4">
-                  <Textarea
-                    placeholder="Write your content here... You can use markdown formatting."
-                    rows={12}
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    required
-                  />
-
-                  {/* Media Upload */}
-                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-muted-foreground mb-2">
-                      Drag and drop images or videos, or click to browse
-                    </p>
-                    <Button variant="outline" type="button">
-                      <ImageIcon className="h-4 w-4 mr-2" />
-                      Upload Media
-                    </Button>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="preview" className="space-y-4">
-                  <div className="border rounded-lg p-6 min-h-[300px] bg-muted/20">
-                    <h3 className="text-xl font-bold mb-4">{title || "Your title will appear here"}</h3>
-                    <p className="text-muted-foreground mb-4">{description || "Your description will appear here"}</p>
-                    <div className="prose max-w-none">
-                      {content ? (
-                        <pre className="whitespace-pre-wrap font-sans">{content}</pre>
-                      ) : (
-                        <p className="text-muted-foreground">Your content will appear here</p>
-                      )}
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
+              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-muted-foreground mb-2">
+                  Drag and drop images or click to browse
+                </p>
+                <Button variant="outline" type="button" onClick={handleUploadClick}>
+                  <ImageIcon className="h-4 w-4 mr-2" />
+                  Upload Images
+                </Button>
+                <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={onFilesSelected} />
+              </div>
             </CardContent>
           </Card>
 

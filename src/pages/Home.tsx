@@ -18,7 +18,8 @@ import {
   TrendingUp,
   Clock,
   Users,
-  Plus
+  Plus,
+  FileText
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -75,6 +76,20 @@ const Home = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+
+  const likesKey = `likes:${user?.id || 'guest'}`;
+  const bookmarksKey = `bookmarks:${user?.id || 'guest'}`;
+  const savedPostsKey = `savedPosts:${user?.id || 'guest'}`;
+
+  useEffect(() => {
+    try {
+      const likeIds: string[] = JSON.parse(localStorage.getItem(likesKey) || '[]');
+      const bmIds: string[] = JSON.parse(localStorage.getItem(bookmarksKey) || '[]');
+      setLikedPosts(new Set(likeIds));
+      setBookmarkedPosts(new Set(bmIds));
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const loadPosts = async (reset = false) => {
     if (isLoading) return;
@@ -159,13 +174,17 @@ const Home = () => {
     setLikedPosts(prev => {
       const s = new Set(prev);
       hasLiked ? s.delete(postId) : s.add(postId);
+      try { localStorage.setItem(likesKey, JSON.stringify(Array.from(s))); } catch {}
       return s;
     });
-    if (hasLiked) {
-      await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id);
-    } else {
-      await supabase.from('likes').insert({ post_id: postId, user_id: user.id });
-    }
+    // Optional: attempt server persistence if table exists
+    try {
+      if (hasLiked) {
+        await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id);
+      } else {
+        await supabase.from('likes').insert({ post_id: postId, user_id: user.id });
+      }
+    } catch {}
   };
 
   const toggleBookmark = async (postId: string) => {
@@ -174,15 +193,44 @@ const Home = () => {
     setBookmarkedPosts(prev => {
       const s = new Set(prev);
       hasBookmarked ? s.delete(postId) : s.add(postId);
+      try { localStorage.setItem(bookmarksKey, JSON.stringify(Array.from(s))); } catch {}
       return s;
     });
-    if (hasBookmarked) {
-      await supabase.from('bookmarks').delete().eq('post_id', postId).eq('user_id', user.id);
-      toast({ title: "Removed from saved posts" });
-    } else {
-      await supabase.from('bookmarks').insert({ post_id: postId, user_id: user.id });
-      toast({ title: "Added to saved posts" });
-    }
+    // Sync saved posts list in localStorage for SavedPosts page
+    setFeed(prev => {
+      const post = prev.find(p => p.id === postId);
+      if (!post) return prev;
+      try {
+        const saved: any[] = JSON.parse(localStorage.getItem(savedPostsKey) || '[]');
+        if (hasBookmarked) {
+          const next = saved.filter(sp => sp.id !== postId);
+          localStorage.setItem(savedPostsKey, JSON.stringify(next));
+        } else {
+          const savedItem = {
+            id: post.id,
+            title: post.content.title,
+            content: post.content.description,
+            category: post.content.category,
+            tags: [],
+            created_at: new Date(post.timestamp).toISOString(),
+          };
+          const next = [savedItem, ...saved.filter(sp => sp.id !== postId)];
+          localStorage.setItem(savedPostsKey, JSON.stringify(next));
+        }
+      } catch {}
+      return prev;
+    });
+
+    // Optional: attempt server persistence if table exists
+    try {
+      if (hasBookmarked) {
+        await supabase.from('bookmarks').delete().eq('post_id', postId).eq('user_id', user.id);
+        toast({ title: "Removed from saved posts" });
+      } else {
+        await supabase.from('bookmarks').insert({ post_id: postId, user_id: user.id });
+        toast({ title: "Added to saved posts" });
+      }
+    } catch {}
   };
 
   const [currentComments, setCurrentComments] = useState<any[]>([]);
@@ -228,13 +276,58 @@ const Home = () => {
     toast({ title: `Viewing ${author.name}'s profile` });
   };
 
+  const renderContent = (raw: string) => {
+    if (!raw) return null;
+    // Split by double newlines to form blocks
+    const blocks = raw.split(/\n\n+/);
+    return (
+      <div className="space-y-3">
+        {blocks.map((block, idx) => {
+          // Markdown image pattern ![alt](url)
+          const imgMatch = block.match(/!\[[^\]]*\]\(([^)]+)\)/);
+          if (imgMatch) {
+            const url = imgMatch[1];
+            if (url.startsWith('data:image') || url.startsWith('http')) {
+              return (
+                <div key={idx} className="rounded-lg overflow-hidden border">
+                  <img src={url} alt="post" className="w-full h-auto object-contain" />
+                </div>
+              );
+            }
+          }
+          // If block looks like a bare data URL image
+          if (block.startsWith('data:image')) {
+            return (
+              <div key={idx} className="rounded-lg overflow-hidden border">
+                <img src={block} alt="post" className="w-full h-auto object-contain" />
+              </div>
+            );
+          }
+          // File link (basic): render as link with icon if it looks like a URL
+          const urlMatch = block.match(/https?:\/\/\S+/);
+          if (urlMatch) {
+            const url = urlMatch[0];
+            return (
+              <a key={idx} href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline text-sm">
+                <FileText className="h-4 w-4" />
+                <span className="break-all">{url}</span>
+              </a>
+            );
+          }
+          // Fallback paragraph
+          return <p key={idx} className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">{block}</p>;
+        })}
+      </div>
+    );
+  };
+
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6 max-w-2xl">
+      <div className="container mx-auto px-4 py-4 md:py-6 max-w-2xl">
 
         {/* Quick Access */}
-        <Card className="mb-6 shadow-card">
-          <CardContent className="p-4">
+        <Card className="mb-4 md:mb-6 shadow-card">
+          <CardContent className="p-3 md:p-4">
             <div className="flex space-x-4 overflow-x-auto pb-2">
               <Link to="/explore" className="flex-shrink-0 text-center">
                 <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mb-2">
@@ -265,10 +358,10 @@ const Home = () => {
         </Card>
 
         {/* Feed */}
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {feed.map((post) => (
             <Card key={post.id} className="shadow-card hover:shadow-elevated transition-all duration-300 animate-fade-in">
-              <CardContent className="p-0">
+              <CardContent className="p-3 md:p-0">
                 {/* Author Header */}
                 <div className="flex items-center justify-between p-4 pb-3">
                   <div 
@@ -295,13 +388,11 @@ const Home = () => {
                 </div>
 
                 {/* Content */}
-                <div className="px-4 pb-3">
-                  <h3 className="font-semibold text-lg mb-2 leading-tight">
+                <div className="px-0 md:px-4 pb-2 md:pb-3">
+                  <h3 className="font-semibold text-base md:text-lg mb-1 md:mb-2 leading-tight">
                     {post.content.title}
                   </h3>
-                  <p className="text-muted-foreground text-sm mb-3 leading-relaxed">
-                    {post.content.description}
-                  </p>
+                  {renderContent(post.content.description)}
                 </div>
 
                 {/* Optional read time placeholder */}
@@ -315,7 +406,7 @@ const Home = () => {
                 )}
 
                 {/* Engagement Actions */}
-                <div className="flex items-center justify-between px-4 py-3 border-t">
+                <div className="flex items-center justify-between px-2 md:px-4 py-2 md:py-3 border-t">
                   <div className="flex items-center space-x-6">
                     <Button
                       variant="ghost"
@@ -378,7 +469,7 @@ const Home = () => {
         </div>
 
         {/* Load More */}
-        <div className="text-center py-8">
+        <div className="text-center py-6 md:py-8">
           <Button 
             variant="outline" 
             className="w-full max-w-sm"
