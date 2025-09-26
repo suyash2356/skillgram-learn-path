@@ -25,6 +25,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import NotificationBell from "@/components/NotificationBell";
+import { useOnlineStatus } from "@/hooks/use-mobile";
 
 interface LayoutProps {
   children: ReactNode;
@@ -37,6 +39,7 @@ export const Layout = ({ children }: LayoutProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
   const { signOut } = useAuth();
+  const online = useOnlineStatus();
 
   const navigation = [
     { name: "Home", href: "/home", icon: Home },
@@ -68,6 +71,9 @@ export const Layout = ({ children }: LayoutProps) => {
     <div className="min-h-screen bg-background">
       {/* Top Navigation */}
       <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+        {!online && (
+          <div className="w-full bg-yellow-500 text-black text-xs md:text-sm py-1 text-center">You're offline. Some features may be unavailable. Changes will sync when back online.</div>
+        )}
         <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
           {/* Logo */}
           <Link to="/home" className="flex items-center space-x-2 flex-shrink-0">
@@ -115,6 +121,7 @@ export const Layout = ({ children }: LayoutProps) => {
 
           {/* Right Side Actions */}
           <div className="flex items-center space-x-2">
+            <NotificationBell />
             {/* Settings Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -82,12 +82,31 @@ const Home = () => {
   const savedPostsKey = `savedPosts:${user?.id || 'guest'}`;
 
   useEffect(() => {
-    try {
-      const likeIds: string[] = JSON.parse(localStorage.getItem(likesKey) || '[]');
-      const bmIds: string[] = JSON.parse(localStorage.getItem(bookmarksKey) || '[]');
-      setLikedPosts(new Set(likeIds));
-      setBookmarkedPosts(new Set(bmIds));
-    } catch {}
+    const loadReactions = async () => {
+      try {
+        if (user?.id) {
+          const [{ data: likesData }, { data: bmData }] = await Promise.all([
+            supabase.from('likes').select('post_id').eq('user_id', user.id),
+            supabase.from('bookmarks').select('post_id').eq('user_id', user.id),
+          ]);
+          setLikedPosts(new Set((likesData || []).map((r: any) => r.post_id)));
+          setBookmarkedPosts(new Set((bmData || []).map((r: any) => r.post_id)));
+        } else {
+          const likeIds: string[] = JSON.parse(localStorage.getItem(likesKey) || '[]');
+          const bmIds: string[] = JSON.parse(localStorage.getItem(bookmarksKey) || '[]');
+          setLikedPosts(new Set(likeIds));
+          setBookmarkedPosts(new Set(bmIds));
+        }
+      } catch {
+        try {
+          const likeIds: string[] = JSON.parse(localStorage.getItem(likesKey) || '[]');
+          const bmIds: string[] = JSON.parse(localStorage.getItem(bookmarksKey) || '[]');
+          setLikedPosts(new Set(likeIds));
+          setBookmarkedPosts(new Set(bmIds));
+        } catch {}
+      }
+    };
+    loadReactions();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
@@ -121,15 +140,17 @@ const Home = () => {
       const profileByUserId = new Map<string, Profile>();
       (profiles || []).forEach(pr => profileByUserId.set(pr.user_id, pr as Profile));
 
-      // Optionally fetch comment counts per post
-      const counts = new Map<string, number>();
+      // Fetch counts per post (comments and likes)
+      const commentCounts = new Map<string, number>();
+      const likeCounts = new Map<string, number>();
       await Promise.all(
         (posts || []).map(async (p) => {
-          const { count } = await supabase
-            .from("comments")
-            .select("id", { count: "exact", head: true })
-            .eq("post_id", p.id);
-          counts.set(p.id, count || 0);
+          const [{ count: cCount }, { count: lCount }] = await Promise.all([
+            supabase.from("comments").select("id", { count: "exact", head: true }).eq("post_id", p.id),
+            supabase.from("likes").select("id", { count: "exact", head: true }).eq("post_id", p.id),
+          ]);
+          commentCounts.set(p.id, cCount || 0);
+          likeCounts.set(p.id, lCount || 0);
         })
       );
 
@@ -149,8 +170,8 @@ const Home = () => {
             category: p.category || "General",
           },
           engagement: {
-            likes: 0,
-            comments: counts.get(p.id) || 0,
+            likes: likeCounts.get(p.id) || 0,
+            comments: commentCounts.get(p.id) || 0,
             shares: 0,
           },
           timestamp: new Date(p.created_at).toLocaleString(),
@@ -177,14 +198,23 @@ const Home = () => {
       try { localStorage.setItem(likesKey, JSON.stringify(Array.from(s))); } catch {}
       return s;
     });
-    // Optional: attempt server persistence if table exists
+    // Server persistence with optimistic UI
     try {
       if (hasLiked) {
         await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id);
       } else {
         await supabase.from('likes').insert({ post_id: postId, user_id: user.id });
       }
-    } catch {}
+    } catch (e) {
+      // Revert on failure
+      setLikedPosts(prev => {
+        const s = new Set(prev);
+        hasLiked ? s.add(postId) : s.delete(postId);
+        try { localStorage.setItem(likesKey, JSON.stringify(Array.from(s))); } catch {}
+        return s;
+      });
+      toast({ title: "Failed to update like", variant: "destructive" });
+    }
   };
 
   const toggleBookmark = async (postId: string) => {
@@ -221,7 +251,6 @@ const Home = () => {
       return prev;
     });
 
-    // Optional: attempt server persistence if table exists
     try {
       if (hasBookmarked) {
         await supabase.from('bookmarks').delete().eq('post_id', postId).eq('user_id', user.id);
@@ -230,7 +259,16 @@ const Home = () => {
         await supabase.from('bookmarks').insert({ post_id: postId, user_id: user.id });
         toast({ title: "Added to saved posts" });
       }
-    } catch {}
+    } catch (e) {
+      // Revert on failure
+      setBookmarkedPosts(prev => {
+        const s = new Set(prev);
+        hasBookmarked ? s.add(postId) : s.delete(postId);
+        try { localStorage.setItem(bookmarksKey, JSON.stringify(Array.from(s))); } catch {}
+        return s;
+      });
+      toast({ title: "Failed to update bookmark", variant: "destructive" });
+    }
   };
 
   const [currentComments, setCurrentComments] = useState<any[]>([]);
