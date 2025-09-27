@@ -43,7 +43,8 @@ export type Database = {
           content: string
           created_at: string
           id: string
-          post_id: string
+          post_id: string | null
+          roadmap_id: string | null
           updated_at: string
           user_id: string
         }
@@ -51,7 +52,8 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
-          post_id: string
+          post_id?: string | null
+          roadmap_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -59,7 +61,8 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
-          post_id?: string
+          post_id?: string | null
+          roadmap_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -71,6 +74,13 @@ export type Database = {
             referencedRelation: "posts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "comments_roadmap_id_fkey",
+            columns: ["roadmap_id"],
+            isOneToOne: false,
+            referencedRelation: "roadmaps",
+            referencedColumns: ["id"]
+          }
         ]
       }
       communities: {

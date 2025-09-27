@@ -17,6 +17,7 @@ import CreatePost from "./pages/CreatePost";
 import MyRoadmaps from "./pages/MyRoadmaps";
 import RoadmapView from "./pages/RoadmapView";
 import Communities from "./pages/Communities";
+import MyCommunities from "./pages/MyCommunities"; // Import new component
 import NewVideos from "./pages/NewVideos";
 import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
@@ -31,7 +32,8 @@ const queryClient = new QueryClient({
       retry: 2,
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
-      staleTime: 30_000,
+      staleTime: 60 * 1000, // Increase staleTime to 1 minute
+      retryDelay: attempt => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30 * 1000), // Exponential backoff
     },
     mutations: {
       retry: 1,
@@ -60,6 +62,7 @@ const App = () => (
           <Route path="/roadmaps" element={<ProtectedRoute><MyRoadmaps /></ProtectedRoute>} />
           <Route path="/roadmaps/:id" element={<ProtectedRoute><RoadmapView /></ProtectedRoute>} />
           <Route path="/communities" element={<ProtectedRoute><Communities /></ProtectedRoute>} />
+          <Route path="/my-communities" element={<ProtectedRoute><MyCommunities /></ProtectedRoute>} /> {/* New route */}
           <Route path="/new-videos" element={<ProtectedRoute><NewVideos /></ProtectedRoute>} />
           <Route path="/my-posts" element={<ProtectedRoute><MyPosts /></ProtectedRoute>} />
           <Route path="/saved-posts" element={<ProtectedRoute><SavedPosts /></ProtectedRoute>} />

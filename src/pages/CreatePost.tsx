@@ -21,6 +21,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useQuery } from "@tanstack/react-query";
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -33,6 +35,7 @@ const CreatePost = () => {
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [category, setCategory] = useState("");
+  const [communityId, setCommunityId] = useState<string | null>(null); // New state for community selection
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -41,6 +44,20 @@ const CreatePost = () => {
     "Cybersecurity", "Mobile Development", "Web Development", 
     "Cloud Computing", "Blockchain", "UI/UX", "Product Management"
   ];
+
+  const { data: communities } = useQuery({
+    queryKey: ['userCommunities', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('community_members')
+        .select('community_id, communities(*)')
+        .eq('user_id', user.id);
+      if (error) throw error;
+      return data.map(member => member.communities);
+    },
+    enabled: !!user?.id,
+  });
 
   const postTypes = [
     { id: "article", name: "Article", icon: FileText, description: "Share knowledge and insights" },
@@ -80,13 +97,18 @@ const CreatePost = () => {
     if (!user) return;
     setIsSubmitting(true);
 
-    const { error } = await supabase.from('posts').insert({
+    const postPayload: any = {
       user_id: user.id,
       title,
       content: description + (content ? "\n\n" + content : ""),
       category,
       tags,
-    });
+    };
+    if (communityId) {
+      postPayload.community_id = communityId;
+    }
+
+    const { data: newPost, error } = await supabase.from('posts').insert(postPayload).select('id, title').single();
 
     if (error) {
       toast({ title: 'Failed to publish post', variant: 'destructive' });
@@ -95,6 +117,33 @@ const CreatePost = () => {
     }
 
     toast({ title: 'Post published' });
+
+    // If post is in a community, notify all members
+    if (communityId && newPost) {
+      const { data: members, error: membersError } = await supabase
+        .from('community_members')
+        .select('user_id')
+        .eq('community_id', communityId);
+
+      if (membersError) {
+        console.error("Error fetching community members for notification:", membersError);
+      } else if (members) {
+        const notificationRecipients = members
+          .map(member => member.user_id)
+          .filter(memberId => memberId !== user.id); // Exclude the post author
+
+        for (const recipientId of notificationRecipients) {
+          await createNotification({
+            user_id: recipientId,
+            type: 'community_post',
+            title: `New post in your community: "${title}"`, // Use post title
+            body: `Check out the latest post by ${user.user_metadata.full_name || 'a member'}.`,
+            data: { post_id: newPost.id, community_id: communityId, post_title: newPost.title },
+          });
+        }
+      }
+    }
+
     navigate('/home');
   };
 
@@ -184,6 +233,23 @@ const CreatePost = () => {
               </div>
 
               <div>
+                <Label htmlFor="community">Community (Optional)</Label>
+                <Select value={communityId || ""} onValueChange={setCommunityId}>
+                  <SelectTrigger id="community" className="w-full">
+                    <SelectValue placeholder="Select a community" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No Community</SelectItem>
+                    {(communities || []).map((community: any) => (
+                      <SelectItem key={community.id} value={community.id}>
+                        {community.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
                 <Label>Tags</Label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {tags.map((tag) => (
@@ -210,43 +276,6 @@ const CreatePost = () => {
               </div>
             </CardContent>
           </Card>
-
-          {/* Media Upload Only */}
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle>Upload Media</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-muted-foreground mb-2">
-                  Drag and drop images or click to browse
-                </p>
-                <Button variant="outline" type="button" onClick={handleUploadClick}>
-                  <ImageIcon className="h-4 w-4 mr-2" />
-                  Upload Images
-                </Button>
-                <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={onFilesSelected} />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Actions */}
-          <div className="flex gap-4 justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate('/home')}
-            >
-              Cancel
-            </Button>
-            <Button type="button" variant="secondary">
-              Save Draft
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Publishing...' : 'Publish Post'}
-            </Button>
-          </div>
         </form>
       </div>
     </Layout>

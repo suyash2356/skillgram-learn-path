@@ -70,7 +70,11 @@ const MyPosts = () => {
   };
 
   const persistCollections = (cols: string[], map: Record<string, string>) => {
-    try { localStorage.setItem(collectionsKey, JSON.stringify({ collections: cols.filter(c => c !== 'All'), map })); } catch {}
+    try { 
+      localStorage.setItem(collectionsKey, JSON.stringify({ collections: cols.filter(c => c !== 'All'), map })); 
+    } catch (error) {
+      console.warn('Failed to save collections:', error);
+    }
   };
 
   const addCollection = () => {

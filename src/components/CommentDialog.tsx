@@ -28,10 +28,11 @@ interface CommentDialogProps {
   postTitle: string;
   comments: Comment[];
   postId?: string;
+  roadmapId?: string; // New prop for roadmap comments
   onCommentAdded?: () => void;
 }
 
-export const CommentDialog = ({ open, onOpenChange, postTitle, comments: initialComments, postId = "", onCommentAdded }: CommentDialogProps) => {
+export const CommentDialog = ({ open, onOpenChange, postTitle, comments: initialComments, postId = "", roadmapId = "", onCommentAdded }: CommentDialogProps) => {
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState(initialComments);
   const { user } = useAuth();
@@ -43,16 +44,27 @@ export const CommentDialog = ({ open, onOpenChange, postTitle, comments: initial
 
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
-    if (!user || !postId) return;
-    
-    const { error } = await supabase.from("comments").insert({
-      post_id: postId,
+    if (!user || (!postId && !roadmapId)) {
+      toast({ title: "Invalid request", description: "Must be logged in and provide a post or roadmap ID.", variant: "destructive" });
+      return;
+    }
+
+    const commentData: { user_id: string; content: string; post_id?: string; roadmap_id?: string } = {
       user_id: user.id,
       content: newComment.trim(),
-    });
+    };
 
-    if (error) {
-      toast({ title: "Failed to add comment", variant: "destructive" });
+    let insertError;
+    if (postId) {
+      const { error } = await supabase.from("comments").insert({ user_id: user.id, content: newComment.trim(), post_id: postId });
+      insertError = error;
+    } else if (roadmapId) {
+      const { error } = await supabase.from("comments").insert({ user_id: user.id, content: newComment.trim(), roadmap_id: roadmapId });
+      insertError = error;
+    }
+
+    if (insertError) {
+      toast({ title: "Failed to add comment", description: insertError.message, variant: "destructive" });
       return;
     }
 
@@ -67,8 +79,52 @@ export const CommentDialog = ({ open, onOpenChange, postTitle, comments: initial
 
     setComments([newLocal, ...comments]);
     setNewComment("");
-    onCommentAdded && onCommentAdded();
+    if (onCommentAdded) {
+      onCommentAdded();
+    }
     toast({ title: "Comment added" });
+
+    // Send notification
+    if (user.id) {
+      const { data: commenterProfile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+      const commenterName = commenterProfile?.full_name || 'Someone';
+
+      if (postId) {
+        const { data: postOwner } = await supabase
+          .from('posts')
+          .select('user_id')
+          .eq('id', postId)
+          .single();
+        if (postOwner?.user_id && postOwner.user_id !== user.id) {
+          await supabase.from('notifications').insert({
+            user_id: postOwner.user_id,
+            type: 'post_comment',
+            title: `${commenterName} commented on your post!`,
+            body: `"${newComment.trim()}" on your post "${postTitle}".`,
+            data: { postId, commenterId: user.id, commenterName, commentContent: newComment.trim() },
+          });
+        }
+      } else if (roadmapId) {
+        const { data: roadmapOwner } = await supabase
+          .from('roadmaps')
+          .select('user_id')
+          .eq('id', roadmapId)
+          .single();
+        if (roadmapOwner?.user_id && roadmapOwner.user_id !== user.id) {
+          await supabase.from('notifications').insert({
+            user_id: roadmapOwner.user_id,
+            type: 'roadmap_comment',
+            title: `${commenterName} commented on your roadmap!`,
+            body: `"${newComment.trim()}" on your roadmap "${postTitle}".`,
+            data: { roadmapId, commenterId: user.id, commenterName, commentContent: newComment.trim() },
+          });
+        }
+      }
+    }
   };
 
   return (

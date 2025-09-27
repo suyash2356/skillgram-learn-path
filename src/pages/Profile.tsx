@@ -23,11 +23,20 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useParams } from "react-router-dom";
+import { useUserFollows } from "@/hooks/useUserFollows";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 
 const Profile = () => {
-  const { user } = useAuth();
-  const storageKey = `profile:${user?.id || 'guest'}`;
+  const { user: currentUser } = useAuth(); // Renamed to currentUser to avoid conflict
+  const { userId } = useParams<{ userId: string }>(); // Get user ID from URL params
+  const targetUserId = userId || currentUser?.id; // If userId in URL, view that profile, else current user's
+
+  const storageKey = `profile:${targetUserId || 'guest'}`;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const { isFollowing, toggleFollow, followerCount, followingCount, isLoadingFollowStatus } = useUserFollows(targetUserId);
 
   const emptyProfile = {
     name: "",
@@ -36,6 +45,7 @@ const Profile = () => {
     joinDate: "",
     avatar: "",
     bio: "",
+    // stats.followers and stats.following will be fetched from useUserFollows hook
     stats: {
       skillsLearning: 0,
       roadmapsCompleted: 0,
@@ -47,30 +57,52 @@ const Profile = () => {
     learningPath: [] as { skill: string; progress: number; totalLessons: number }[],
     recentActivity: [] as { type: string; content: string; time: string }[],
     portfolioUrl: "",
+    socialLinks: [] as { platform: string; url: string; icon: string }[], // New: Social links
   };
 
   const [profile, setProfile] = useState(emptyProfile);
   const [editMode, setEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
+  // Fetch user's roadmaps
+  const { data: userRoadmaps, isLoading: isLoadingRoadmaps, error: roadmapsError } = useQuery({
+    queryKey: ['userRoadmaps', targetUserId],
+    queryFn: async () => {
+      if (!targetUserId) return [];
+      const { data, error } = await supabase
+        .from('roadmaps')
+        .select('id, title, description, progress, status, created_at')
+        .eq('user_id', targetUserId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!targetUserId,
+  });
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
-        setProfile({ ...emptyProfile, ...JSON.parse(saved) });
+        // Merge saved data with fetched follower/following counts
+        setProfile(prev => ({ ...emptyProfile, ...JSON.parse(saved), stats: { ...prev.stats, followers: followerCount, following: followingCount } }));
       } else {
-        setProfile(emptyProfile);
+        setProfile(prev => ({ ...emptyProfile, stats: { ...prev.stats, followers: followerCount, following: followingCount } }));
       }
     } catch {
-      setProfile(emptyProfile);
+      setProfile(prev => ({ ...emptyProfile, stats: { ...prev.stats, followers: followerCount, following: followingCount } }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [targetUserId, followerCount, followingCount]); // Added followerCount and followingCount to dependencies
 
   useEffect(() => {
     try {
-      localStorage.setItem(storageKey, JSON.stringify(profile));
-    } catch {}
+      // Only save non-dynamic stats to local storage
+      const { followers, following, ...restStats } = profile.stats;
+      localStorage.setItem(storageKey, JSON.stringify({ ...profile, stats: restStats }));
+    } catch (error) {
+      console.warn('Failed to load profile data:', error);
+    }
   }, [profile, storageKey]);
 
   const initials = (profile.name || 'User').split(' ').map(n => n[0]).join('');
@@ -89,6 +121,9 @@ const Profile = () => {
 
   const addActivity = () => setProfile(prev => ({ ...prev, recentActivity: [ ...(prev.recentActivity || []), { type: 'completed', content: '', time: '' } ] }));
   const removeActivity = (idx: number) => setProfile(prev => ({ ...prev, recentActivity: (prev.recentActivity || []).filter((_, i) => i !== idx) }));
+
+  const addSocialLink = () => setProfile(prev => ({ ...prev, socialLinks: [ ...(prev.socialLinks || []), { platform: '', url: '', icon: '' } ] }));
+  const removeSocialLink = (idx: number) => setProfile(prev => ({ ...prev, socialLinks: (prev.socialLinks || []).filter((_, i) => i !== idx) }));
 
   const startEdit = () => setEditMode(true);
   const cancelEdit = () => setEditMode(false);
@@ -179,18 +214,55 @@ const Profile = () => {
                       <div className="text-xs text-muted-foreground">Roadmaps Done</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-primary">{profile.stats.followers}</div>
+                      <div className="text-2xl font-bold text-primary">{followerCount}</div>
                       <div className="text-xs text-muted-foreground">Followers</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-primary">{profile.stats.following}</div>
+                      <div className="text-2xl font-bold text-primary">{followingCount}</div>
                       <div className="text-xs text-muted-foreground">Following</div>
                     </div>
                   </div>
                 </div>
+
+                <div className="flex flex-wrap items-center gap-4 mt-4">
+                  {editMode ? (
+                    <div className="space-y-2 w-full">
+                      <Label>Social Links</Label>
+                      {(profile.socialLinks || []).map((link, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <Input placeholder="Platform (e.g., LinkedIn)" value={link.platform} onChange={(e) => setProfile(prev => ({ ...prev, socialLinks: prev.socialLinks.map((l, i) => i === index ? { ...l, platform: e.target.value } : l) }))} />
+                          <Input placeholder="URL" value={link.url} onChange={(e) => setProfile(prev => ({ ...prev, socialLinks: prev.socialLinks.map((l, i) => i === index ? { ...l, url: e.target.value } : l) }))} />
+                          <Button variant="ghost" size="sm" onClick={() => removeSocialLink(index)}><X className="h-4 w-4" /></Button>
+                        </div>
+                      ))}
+                      <Button variant="outline" size="sm" onClick={addSocialLink}><Plus className="h-4 w-4 mr-1" /> Add Social Link</Button>
+                    </div>
+                  ) : (
+                    (profile.socialLinks || []).length > 0 && (
+                      <div className="flex flex-wrap gap-3">
+                        {(profile.socialLinks || []).map((link, index) => (
+                          <a key={index} href={link.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-400 hover:underline">
+                            <ExternalLink className="h-4 w-4" />
+                            <span>{link.platform}</span>
+                          </a>
+                        ))}
+                      </div>
+                    )
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-col space-y-2">
+                {currentUser?.id !== targetUserId && ( // Only show follow/unfollow if not viewing own profile
+                  <Button
+                    variant={isFollowing ? "outline" : "default"}
+                    onClick={toggleFollow}
+                    disabled={isLoadingFollowStatus || !currentUser}
+                    className="w-full"
+                  >
+                    {isFollowing ? "Following" : "Follow"}
+                  </Button>
+                )}
                 {editMode ? (
                   <>
                     <Button className="w-full" onClick={saveEdit}>Save</Button>
@@ -198,14 +270,16 @@ const Profile = () => {
                   </>
                 ) : (
                   <>
-                    <Button className="w-full" onClick={startEdit}>Edit Profile</Button>
+                    {currentUser?.id === targetUserId && (
+                      <Button className="w-full" onClick={startEdit}>Edit Profile</Button>
+                    )}
                     <Button variant="outline" className="w-full">
                       <ExternalLink className="h-4 w-4 mr-2" />
                       {profile.portfolioUrl ? (
                         <a href={profile.portfolioUrl} target="_blank" rel="noreferrer">Portfolio</a>
                       ) : 'Portfolio'}
                     </Button>
-                    {editMode && (
+                    {editMode && currentUser?.id === targetUserId && (
                       <Input placeholder="Portfolio URL" value={profile.portfolioUrl} onChange={(e) => handleProfileField('portfolioUrl', e.target.value)} />
                     )}
                   </>
@@ -217,8 +291,9 @@ const Profile = () => {
 
         {/* Tabs Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="roadmaps">Roadmaps</TabsTrigger>
             <TabsTrigger value="skills">Skills</TabsTrigger>
             <TabsTrigger value="achievements">Achievements</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
@@ -314,6 +389,43 @@ const Profile = () => {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="roadmaps" className="space-y-6">
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <BookOpen className="h-5 w-5" />
+                  <span>My Roadmaps</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isLoadingRoadmaps ? (
+                  <div className="text-sm text-muted-foreground">Loading roadmaps...</div>
+                ) : roadmapsError ? (
+                  <div className="text-sm text-destructive">Error loading roadmaps: {roadmapsError.message}</div>
+                ) : (userRoadmaps || []).length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No roadmaps created yet.</div>
+                ) : (
+                  <div className="grid gap-4">
+                    {(userRoadmaps || []).map((roadmap: any) => (
+                      <Link to={`/roadmaps/${roadmap.id}`} key={roadmap.id} className="block">
+                        <Card className="hover:border-primary transition-colors duration-200">
+                          <CardContent className="p-4">
+                            <h4 className="font-semibold text-lg mb-1">{roadmap.title}</h4>
+                            <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{roadmap.description}</p>
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>Progress: {roadmap.progress}%</span>
+                              <Badge variant="secondary">{roadmap.status}</Badge>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="skills" className="space-y-6">

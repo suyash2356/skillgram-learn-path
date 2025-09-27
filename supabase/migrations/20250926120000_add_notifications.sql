@@ -13,29 +13,69 @@ create table if not exists public.notifications (
 alter table public.notifications enable row level security;
 
 -- Allow users to read their own notifications
-create policy if not exists "Users can view own notifications"
-on public.notifications for select
-to authenticated
-using (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname = 'public' 
+    AND tablename = 'notifications' 
+    AND policyname = 'Users can view own notifications'
+  ) THEN
+    CREATE POLICY "Users can view own notifications"
+    ON public.notifications FOR SELECT
+    TO authenticated
+    USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- Allow users to insert notifications for themselves (app backend can also do this with service role)
-create policy if not exists "Users can insert own notifications"
-on public.notifications for insert
-to authenticated
-with check (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname = 'public' 
+    AND tablename = 'notifications' 
+    AND policyname = 'Users can insert own notifications'
+  ) THEN
+    CREATE POLICY "Users can insert own notifications"
+    ON public.notifications FOR INSERT
+    TO authenticated
+    WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- Allow users to update their own notifications (e.g., mark as read)
-create policy if not exists "Users can update own notifications"
-on public.notifications for update
-to authenticated
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname = 'public' 
+    AND tablename = 'notifications' 
+    AND policyname = 'Users can update own notifications'
+  ) THEN
+    CREATE POLICY "Users can update own notifications"
+    ON public.notifications FOR UPDATE
+    TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- Optional: allow delete own notifications
-create policy if not exists "Users can delete own notifications"
-on public.notifications for delete
-to authenticated
-using (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname = 'public' 
+    AND tablename = 'notifications' 
+    AND policyname = 'Users can delete own notifications'
+  ) THEN
+    CREATE POLICY "Users can delete own notifications"
+    ON public.notifications FOR DELETE
+    TO authenticated
+    USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- Helpful index for unread queries
 create index if not exists notifications_user_created_idx

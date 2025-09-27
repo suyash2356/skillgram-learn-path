@@ -59,7 +59,9 @@ const SavedPosts = () => {
   const persistCollections = (cols: string[], map: Record<string, string>) => {
     try {
       localStorage.setItem(collectionsKey, JSON.stringify({ collections: cols.filter(c => c !== 'All'), map }));
-    } catch {}
+    } catch (error) {
+      console.warn('Failed to load saved posts:', error);
+    }
   };
 
   const addCollection = () => {

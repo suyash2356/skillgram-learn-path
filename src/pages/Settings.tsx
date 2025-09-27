@@ -79,7 +79,9 @@ const Settings = () => {
       const a = document.createElement('a');
       a.href = url; a.download = 'settings-export.json'; a.click();
       URL.revokeObjectURL(url);
-    } catch {}
+    } catch (error) {
+      console.warn('Failed to save account data:', error);
+    }
   };
 
   const saveAccount = async () => {

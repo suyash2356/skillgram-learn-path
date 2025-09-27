@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Clock, Target, CheckCircle, Edit3, Save, X, Plus, Link as LinkIcon, Menu, Calendar,
   BookOpen, Brain, Rocket, FlaskConical, Trophy, GraduationCap, Hourglass, ListChecks,
-  Book, MonitorPlay, Youtube, Globe, Codepen, Users, Mail, Award, FolderOpen, ClipboardCheck, PenLine, CalendarCheck, Lightbulb
+  Book, MonitorPlay, Youtube, Globe, Codepen, Users, Mail, Award, FolderOpen, ClipboardCheck, PenLine, CalendarCheck, Lightbulb, MessageCircle, Share2
 } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { TypedSupabaseClient } from "@/integrations/supabase/client";
@@ -19,6 +19,11 @@ import { Database } from "@/integrations/supabase/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { useUserFollows } from "@/hooks/useUserFollows";
+import { CommentDialog } from "@/components/CommentDialog";
+import { ShareLinkDialog } from "@/components/ShareLinkDialog";
 
 const rawSupabase = supabase;
 const supabaseTyped = rawSupabase as TypedSupabaseClient;
@@ -42,12 +47,18 @@ const RoadmapView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth(); // Get current user from auth context
+  const queryClient = useQueryClient();
+
   const [roadmap, setRoadmap] = useState<any | null>(null);
   const [steps, setSteps] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [editingStep, setEditingStep] = useState<string | null>(null);
   const [resourcesByStep, setResourcesByStep] = useState<Record<string, any[]>>({});
   const [isRebuilding, setIsRebuilding] = useState(false);
+  const [commentDialogOpen, setCommentDialogOpen] = useState(false);
+  const [currentRoadmapComments, setCurrentRoadmapComments] = useState<any[]>([]);
+  const [isPublic, setIsPublic] = useState(false); // New state for public status
 
   // Template state (editable + persisted)
   const [template, setTemplate] = useState<any | null>(null);
@@ -197,6 +208,29 @@ const RoadmapView = () => {
     }
   };
 
+  const fetchRoadmapComments = useCallback(async () => {
+    if (!id) return;
+    const { data, error } = await supabase
+      .from('comments')
+      .select(`
+        id,
+        content,
+        created_at,
+        user_id,
+        profiles(full_name, avatar_url)
+      `)
+      .eq('roadmap_id', id)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error("Error fetching comments:", error);
+      toast({ title: "Error loading comments", description: error.message, variant: "destructive" });
+      return [];
+    }
+    setCurrentRoadmapComments(data as Comment[]);
+    return data as Comment[];
+  }, [id, toast]);
+
   const load = useCallback(async () => {
     if (!id) return;
     setIsLoading(true);
@@ -209,10 +243,11 @@ const RoadmapView = () => {
       return;
     }
     setRoadmap(r);
+    setIsPublic(r.is_public);
 
     const { data: s, error: stepsError } = await supabase
       .from('roadmap_steps')
-      .select('*')
+      .select('id, title, description, order_index, duration, completed, topics, task, due_date, notes') // Select all columns needed for editing
       .eq('roadmap_id', id)
       .order('order_index', { ascending: true });
 
@@ -238,6 +273,9 @@ const RoadmapView = () => {
     }));
     setResourcesByStep(all);
     setIsLoading(false);
+
+    // Fetch comments after roadmap and steps are loaded
+    fetchRoadmapComments();
 
     // Hydrate template from localStorage or defaults using roadmap data
     const storageKey = `roadmapTemplate:${id}`;
@@ -324,7 +362,7 @@ const RoadmapView = () => {
       try { localStorage.setItem(storageKey, JSON.stringify(updated)); } catch {}
       return updated;
     });
-  }, [id, toast]);
+  }, [id, toast, fetchRoadmapComments]);
 
   useEffect(() => {
     load();
@@ -335,7 +373,7 @@ const RoadmapView = () => {
     if (!id || !template) return;
     const storageKey = `roadmapTemplate:${id}`;
     localStorage.setItem(storageKey, JSON.stringify(template));
-  }, [id, template]);
+  }, [id, template, queryClient]); // Added queryClient to dependencies
 
   const toggleStep = async (stepId: string, completed: boolean) => {
     const prev = steps;
@@ -508,7 +546,7 @@ const RoadmapView = () => {
   const addCareerSkill = () => setCareer(prev => ({ ...prev, skillsToDevelop: [ ...(prev.skillsToDevelop || []), { name: 'Skill', details: '', checked: false } ] }));
   const addResearchInterest = () => setCareer(prev => ({ ...prev, researchInterests: [ ...(prev.researchInterests || []), { name: 'Topic', details: '', checked: false } ] }));
 
-  // Add helpers for learning resources
+  // Add helpers for additional learning tools
   const addResourceBook = () => setResources(prev => ({ ...prev, books: [ ...(prev.books || []), { title: '', checked: false } ] }));
   const addResourceCourse = () => setResources(prev => ({ ...prev, onlineCourses: [ ...(prev.onlineCourses || []), { title: '', url: '', checked: false } ] }));
   const addResourceChannel = () => setResources(prev => ({ ...prev, youtubeChannels: [ ...(prev.youtubeChannels || []), { title: '', url: '', checked: false } ] }));
@@ -550,9 +588,17 @@ const RoadmapView = () => {
             <Button variant="ghost" onClick={() => navigate('/roadmaps')} className="text-zinc-300 hover:text-white">
             <ArrowLeft className="h-4 w-4 mr-2" /> Back to My Roadmaps
           </Button>
-            <Button variant="destructive" onClick={handleDeleteRoadmap}>
-              Delete Roadmap
-            </Button>
+            <div className="flex items-center">
+              <Button variant="destructive" onClick={handleDeleteRoadmap}>
+                Delete Roadmap
+              </Button>
+              <Button onClick={() => setCommentDialogOpen(true)} variant="secondary" className="ml-2">
+                <MessageCircle className="h-4 w-4 mr-2" /> View/Add Comments
+              </Button>
+              {roadmap && user && roadmap.user_id === user.id && (
+                <ShareLinkDialog roadmapId={roadmap.id} isPublic={isPublic} roadmapTitle={roadmap.title} onPublicToggle={togglePublicStatus} />
+              )}
+            </div>
           </div>
 
           <div className="mb-10">
@@ -1255,6 +1301,14 @@ const RoadmapView = () => {
 
         </div>
       </div>
+      <CommentDialog
+        open={commentDialogOpen}
+        onOpenChange={setCommentDialogOpen}
+        roadmapId={id}
+        postTitle={roadmap?.title || "Roadmap"}
+        comments={currentRoadmapComments}
+        onCommentAdded={fetchRoadmapComments}
+      />
     </Layout>
   );
 };

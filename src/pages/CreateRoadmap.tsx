@@ -26,6 +26,7 @@ import { supabase as rawSupabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { TypedSupabaseClient } from "@/integrations/supabase/client";
 import { TablesInsert, Database } from "@/integrations/supabase/types";
+import { generateAIPrompt, callAIGenerator } from "@/lib/aiRoadmapGenerator";
 
 const supabase = rawSupabase as TypedSupabaseClient;
 
@@ -43,6 +44,7 @@ const CreateRoadmap = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [recommendedResources, setRecommendedResources] = useState<any[]>([]);
   const [useRecommendedResources, setUseRecommendedResources] = useState(false);
+  const [isPublic, setIsPublic] = useState(false); // New state for public/private
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -125,50 +127,40 @@ const CreateRoadmap = () => {
     setIsGenerating(true);
     try {
       // 1. Construct a comprehensive prompt for the AI
-      let aiPrompt = `Generate a detailed learning roadmap for "${formData.title}".\n\n`;
-      aiPrompt += `Objective: ${formData.description}.\n`;
-      aiPrompt += `Current Skill Level: ${skillLevels.find(level => level.value === formData.skillLevel)?.label || 'Not specified'}.\n`;
-      aiPrompt += `Weekly Time Commitment: ${timeCommitments.find(time => time.value === formData.timeCommitment)?.label || 'Not specified'}.\n`;
-      if (formData.targetRole) {
-        aiPrompt += `Target Role/Position: ${formData.targetRole}.\n`;
-      }
-      if (formData.preferredLearningStyle) {
-        aiPrompt += `Preferred Learning Style: ${learningStyles.find(style => style.value === formData.preferredLearningStyle)?.label || 'Not specified'}.\n`;
-      }
-      if (formData.focusAreas.length > 0) {
-        aiPrompt += `Key Focus Areas: ${formData.focusAreas.join(', ')}.\n`;
-      }
-      if (formData.deadline) {
-        aiPrompt += `Target Completion Date: ${formData.deadline}.\n`;
-      }
-
-      if (useRecommendedResources && recommendedResources.length > 0) {
-        aiPrompt += `\nConsider integrating the following recommended resources:\n`;
-        recommendedResources.forEach((res, index) => {
-          aiPrompt += `${index + 1}. ${res.title} (${res.type}): ${res.url}\n`;
-        });
-      }
-
-      aiPrompt += `\nStructure the roadmap into phases (e.g., Beginner, Intermediate, Advanced), with detailed modules and sub-modules within each phase. Suggest specific learning activities or resources for each module.`;
+      const aiPrompt = generateAIPrompt({
+        title: formData.title,
+        description: formData.description,
+        skillLevel: skillLevels.find(level => level.value === formData.skillLevel)?.label || 'Not specified',
+        timeCommitment: timeCommitments.find(time => time.value === formData.timeCommitment)?.label || 'Not specified',
+        targetRole: formData.targetRole,
+        preferredLearningStyle: learningStyles.find(style => style.value === formData.preferredLearningStyle)?.label || 'Not specified',
+        focusAreas: formData.focusAreas,
+        deadline: formData.deadline,
+        recommendedResources: recommendedResources,
+        useRecommendedResources: useRecommendedResources,
+      });
 
       console.log("AI Prompt:", aiPrompt);
 
-      // 2. Simulate AI response (replace with actual AI API call in a real scenario)
-      const simulatedAIResponse = generateMockRoadmap(aiPrompt, recommendedResources, useRecommendedResources);
-      console.log("Simulated AI Response:", simulatedAIResponse);
+      // 2. Make actual AI API call
+      const aiResponse = await callAIGenerator(aiPrompt);
+      console.log("AI Response:", aiResponse);
 
-      // 3. Insert the main roadmap entry
+      // 3. Use the AI response directly, assuming it returns structured data
+      const roadmapDataFromAI = aiResponse;
+
+      // 4. Insert the main roadmap entry
       const insertedRoadmapData: TablesInsert<'roadmaps'> = {
         user_id: user.id,
-        title: simulatedAIResponse.title || formData.title || 'Custom Roadmap',
-        description: simulatedAIResponse.description || formData.description || null,
+        title: roadmapDataFromAI.title || formData.title || 'Custom Roadmap',
+        description: roadmapDataFromAI.description || formData.description || null,
         category: formData.targetRole || null,
         difficulty: formData.skillLevel || null,
-        estimated_time: simulatedAIResponse.estimatedDuration || formData.timeCommitment || null,
+        estimated_time: roadmapDataFromAI.estimatedDuration || formData.timeCommitment || null,
         technologies: formData.focusAreas,
         status: 'not-started',
         progress: 0,
-        is_public: false,
+        is_public: isPublic, // Include the isPublic flag
       };
       console.log("Inserting Roadmap Data:", insertedRoadmapData);
       const { data: insertedRoadmap, error: roadmapError } = await getTypedTable('roadmaps')
@@ -184,7 +176,7 @@ const CreateRoadmap = () => {
 
       // 4. Insert roadmap steps and resources from the simulated AI response
       let currentOrderIndex = 0;
-      for (const phase of simulatedAIResponse.phases) {
+      for (const phase of roadmapDataFromAI.phases) {
         const stepData: TablesInsert<'roadmap_steps'> = {
           roadmap_id: roadmapId,
           title: phase.name,
@@ -236,135 +228,8 @@ const CreateRoadmap = () => {
     }
   };
 
-  // Mock AI response function
-  const generateMockRoadmap = (prompt: string, recommendedResources: any[], useRecommendedResources: boolean) => {
-    const titleMatch = prompt.match(/Generate a detailed learning roadmap for "(.*?)"/);
-    const title = titleMatch ? titleMatch[1] : 'Personalized Learning Roadmap';
-
-    const descriptionMatch = prompt.match(/Objective: (.*?)\n/);
-    const description = descriptionMatch ? descriptionMatch[1] : 'A comprehensive learning path tailored to your needs.';
-
-    const estimatedDurationMatch = prompt.match(/Weekly Time Commitment: (.*?)\./);
-    const rawEstimatedTime = estimatedDurationMatch ? estimatedDurationMatch[1] : '5-10 hours per week';
-    let totalWeeks = 12; // Default total duration
-    if (rawEstimatedTime.includes('2-5')) totalWeeks = 16; // Longer for less time commitment
-    else if (rawEstimatedTime.includes('10-15')) totalWeeks = 8;
-    else if (rawEstimatedTime.includes('15+')) totalWeeks = 6; // Shorter for high time commitment
-
-    const skillLevelMatch = prompt.match(/Current Skill Level: (.*?)\./);
-    const skillLevel = skillLevelMatch ? skillLevelMatch[1].toLowerCase() : 'beginner';
-
-    const focusAreasMatch = prompt.match(/Key Focus Areas: (.*?)\./);
-    const focusAreas = focusAreasMatch ? focusAreasMatch[1].split(', ').map(s => s.trim()) : [];
-
-    // Roadmap Structure (Mold)
-    const phases: any[] = [];
-    let currentWeek = 1;
-
-    // Introduction Phase
-    phases.push({
-      name: 'Introduction: Getting Started',
-      description: `Embark on your journey to master ${title.replace(' Learning Roadmap', '')}. This phase will establish foundational knowledge tailored to your ${skillLevel} level.`,      duration: '1 week',
-      resources: useRecommendedResources ? recommendedResources : [],
-      topics: [
-        `Understanding the basics of ${title.replace(' Learning Roadmap', '')}`,
-        'Setting up your development environment (if applicable)',
-        'Core concepts and terminology',
-      ],
-      task: 'Complete a "Hello World" equivalent project.',
-    });
-    currentWeek++;
-
-    // Weekly/Phase Breakdown
-    while (currentWeek <= totalWeeks) {
-      let phaseName = '';
-      let phaseDescription = '';
-      let topics: string[] = [];
-      let task = '';
-      let phaseDuration = '1 week';
-
-      if (currentWeek <= totalWeeks / 3) {
-        phaseName = `Week ${currentWeek}: Fundamentals`;
-        phaseDescription = 'Deep dive into foundational concepts and basic syntax.';
-        topics = [
-          `Fundamental concepts of ${title.replace(' Learning Roadmap', '')}`,
-          'Basic data structures and algorithms (if applicable)',
-          'Control flow and functions',
-        ];
-        if (focusAreas.length > 0) {
-          topics.push(`Introduction to ${focusAreas[0]} concepts`);
-        }
-        task = 'Implement a simple calculator or data manipulation script.';
-      } else if (currentWeek <= (totalWeeks * 2) / 3) {
-        phaseName = `Week ${currentWeek}: Intermediate Concepts`;
-        phaseDescription = 'Develop core skills with practical application and problem-solving.';
-        topics = [
-          'Object-Oriented Programming or advanced paradigms',
-          'API integration or system interaction (if applicable)',
-          'Error handling and debugging',
-        ];
-        if (focusAreas.length > 0) {
-          topics.push(`Intermediate ${focusAreas[0]} techniques`);
-        }
-        task = 'Build a small web application or a data analysis pipeline.';
-      } else {
-        phaseName = `Week ${currentWeek}: Advanced Topics & Specialization`;
-        phaseDescription = 'Master complex areas and explore specialized topics.';
-        topics = [
-          'Advanced design patterns or architectural principles',
-          'Performance optimization and scaling',
-          'Security best practices',
-        ];
-        if (focusAreas.length > 0) {
-          topics.push(`Advanced ${focusAreas[0]} concepts and tools`);
-          if (focusAreas.length > 1) topics.push(`Exploring ${focusAreas[1]} integration`);
-        }
-        task = 'Lead a significant feature development or a complex data science project.';
-      }
-
-      phases.push({
-        name: phaseName,
-        description: phaseDescription,
-        duration: phaseDuration,
-        topics: topics,
-        task: task,
-        resources: [], // Resources can be added dynamically here if needed beyond initial recommendations
-      });
-
-      // Milestones
-      if (currentWeek % 4 === 0 && currentWeek < totalWeeks) {
-        phases.push({
-          name: `Milestone: End of Week ${currentWeek}`,
-          description: `Key achievements: Demonstrated proficiency in core ${title.replace(' Learning Roadmap', '')} concepts, completed hands-on projects.`,          duration: 'N/A',
-          type: 'milestone',
-          topics: [
-            'Skills gained: Core syntax, basic problem-solving',
-            'Progress markers: Successfully completed several mini-projects',
-          ],
-        });
-      }
-      currentWeek++;
-    }
-    // Final Outcome
-    phases.push({
-      name: 'Final Outcome: Mastery Achieved',
-      description: `Congratulations! You have completed your ${title.replace(' Learning Roadmap', '')} journey.`,      duration: 'N/A',
-      type: 'final-outcome',
-      topics: [
-        `Skills: Mastered ${title.replace(' Learning Roadmap', '')}, including ${focusAreas.join(', ') || 'all key areas'}.`,
-        'Certifications: Prepared for relevant industry certifications.',
-        'Portfolio: Developed a strong portfolio with practical projects.',
-        `Ready for ${descriptionMatch ? descriptionMatch[1].toLowerCase() : 'new challenges'}.`,
-      ],
-    });
-
-    return {
-      title: title,
-      description: description,
-      estimatedDuration: totalWeeks === 1 ? '1 week' : `${totalWeeks} weeks`,
-      phases: phases,
-    };
-  };
+  // Remove old mock AI response function
+  // const generateRoadmapFromAI = async (prompt: string): Promise<any> => { ... };
 
   const [isSaving, setIsSaving] = useState(false);
   const saveDraft = async () => {
@@ -381,7 +246,7 @@ const CreateRoadmap = () => {
         technologies: formData.focusAreas,
         status: 'not-started',
         progress: 0,
-        is_public: false,
+        is_public: isPublic, // Include the isPublic flag
       };
       const { error } = await getTypedTable('roadmaps')
         .insert(insertedRoadmapData);
@@ -396,16 +261,16 @@ const CreateRoadmap = () => {
     }
   };
 
-  const previewRoadmap = generateMockRoadmap(
-    `Generate a detailed learning roadmap for "${formData.title}".\n\n` +
-    `Objective: ${formData.description}.\n` +
-    `Current Skill Level: ${skillLevels.find(level => level.value === formData.skillLevel)?.label || 'Not specified'}.\n` +
-    `Weekly Time Commitment: ${timeCommitments.find(time => time.value === formData.timeCommitment)?.label || 'Not specified'}.\n` +
-    (formData.targetRole ? `Target Role/Position: ${formData.targetRole}.\n` : '') +
-    (formData.preferredLearningStyle ? `Preferred Learning Style: ${learningStyles.find(style => style.value === formData.preferredLearningStyle)?.label || 'Not specified'}.\n` : '') +
-    (formData.focusAreas.length > 0 ? `Key Focus Areas: ${formData.focusAreas.join(', ')}.\n` : '') +
-    (formData.deadline ? `Target Completion Date: ${formData.deadline}.\n` : '')
-    , [], false // No recommended resources for preview, and don't use them.
+  const previewRoadmap = generateAIPrompt({
+    title: formData.title,
+    description: formData.description,
+    skillLevel: skillLevels.find(level => level.value === formData.skillLevel)?.label || 'Not specified',
+    timeCommitment: timeCommitments.find(time => time.value === formData.timeCommitment)?.label || 'Not specified',
+    targetRole: formData.targetRole,
+    preferredLearningStyle: learningStyles.find(style => style.value === formData.preferredLearningStyle)?.label || 'Not specified',
+    focusAreas: formData.focusAreas,
+    deadline: formData.deadline,
+  }, [], false // No recommended resources for preview, and don't use them.
   );
 
   return (
@@ -626,6 +491,17 @@ const CreateRoadmap = () => {
                 </CardContent>
               </Card>
             )}
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="is-public"
+                checked={isPublic}
+                onCheckedChange={(checked: boolean) => setIsPublic(checked)}
+              />
+              <Label htmlFor="is-public" className="text-sm cursor-pointer">
+                Make this roadmap public (discoverable by others)
+              </Label>
+            </div>
 
             <div className="flex space-x-4">
               <Button
