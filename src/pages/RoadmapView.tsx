@@ -1,3 +1,7 @@
+// Type guard for roadmap.user
+function isProfileUser(user: any): user is { id: string; full_name?: string; avatar_url?: string } {
+  return !!user && typeof user === 'object' && 'id' in user;
+}
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Layout } from "@/components/Layout";
@@ -53,20 +57,11 @@ const RoadmapView = () => {
       if (!id) return null;
       const { data, error } = await supabase
         .from('roadmaps')
-        .select(`
-          *,
-          profiles (id, full_name, avatar_url)
-        `)
+        .select(`*, user:profiles!user_id(id, full_name, avatar_url)`)
         .eq('id', id)
         .single();
-      
       if (error) throw error;
-
-      // Manually remap profiles to user
-      const roadmapData = { ...data, user: data.profiles };
-      delete (roadmapData as any).profiles;
-
-      return roadmapData;
+      return data;
     },
     enabled: !!id,
   });
@@ -276,7 +271,7 @@ const RoadmapView = () => {
                 <p className="text-muted-foreground mt-2">{roadmap.description}</p>
               </div>
               <div className="flex flex-col items-end gap-2">
-                {roadmap.user && (
+                {isProfileUser(roadmap.user) ? (
                   <Link to={`/profile/${roadmap.user.id}`} className="flex items-center gap-2 text-sm font-medium">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={roadmap.user.avatar_url} />
@@ -284,6 +279,8 @@ const RoadmapView = () => {
                     </Avatar>
                     <span>{roadmap.user.full_name}</span>
                   </Link>
+                ) : (
+                  <span className="text-muted-foreground">Unknown User</span>
                 )}
                 {!isOwner && user && roadmap.user && (
                   <Button size="sm" variant={isFollowing ? "outline" : "default"} onClick={() => toggleFollow()}>
@@ -421,9 +418,13 @@ const RoadmapView = () => {
         })) || []}
       />
       <ShareLinkDialog
-        isOpen={shareDialogOpen}
-        onClose={() => setShareDialogOpen(false)}
-        link={window.location.href}
+        roadmapId={roadmap?.id}
+        isPublic={roadmap?.is_public ?? false}
+        roadmapTitle={roadmap?.title ?? ''}
+        onPublicToggle={async (isPublic) => {
+          if (!roadmap?.id) return;
+          await supabase.from('roadmaps').update({ is_public: isPublic }).eq('id', roadmap.id);
+        }}
       />
     </Layout>
   );

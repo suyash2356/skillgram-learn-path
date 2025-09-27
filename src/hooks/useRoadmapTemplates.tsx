@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { Tables } from '@/integrations/supabase/types';
+import { Tables, Database } from '@/integrations/supabase/types';
 
-export type RoadmapTemplate = Tables<'roadmap_templates'>;
+export type RoadmapTemplate = Tables<'public', 'roadmap_templates'>;
 
 export const useRoadmapTemplates = (roadmapId?: string) => {
   const { user } = useAuth();

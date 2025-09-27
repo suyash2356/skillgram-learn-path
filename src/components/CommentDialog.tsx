@@ -45,6 +45,7 @@ export const CommentDialog = ({ isOpen, onClose, roadmapId, comments: initialCom
           user_id: user.id,
           content,
           roadmap_id: roadmapId,
+          post_id: null,
         })
         .select()
         .single();

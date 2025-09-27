@@ -13,9 +13,9 @@ import { Link } from "react-router-dom";
 import { Edit3, Trash2, Tag, Calendar, FileText } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePostCollections } from "@/hooks/usePostCollections";
-import { Tables } from "@/integrations/supabase/types";
+import { Tables, Database } from "@/integrations/supabase/types";
 
-type Post = Tables<'posts'>;
+type Post = Tables<'public', 'posts'>;
 
 const MyPosts = () => {
   const { user } = useAuth();

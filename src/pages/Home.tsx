@@ -24,8 +24,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useInfiniteQuery, useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Tables } from "@/integrations/supabase/types";
 
-type Post = Tables<'posts'>;
-type Profile = Tables<'profiles'>;
+import type { Database } from '@/integrations/supabase/types';
+type Post = Database['public']['Tables']['posts']['Row'];
+type Profile = Database['public']['Tables']['profiles']['Row'];
 type PostWithProfile = Post & { 
   profiles: Pick<Profile, 'full_name' | 'title' | 'avatar_url'> | null 
   likes_count: number;
@@ -91,7 +92,16 @@ const Home = () => {
 
     if (error) throw new Error("Failed to load posts: " + error.message);
     
-    const posts = data as PostWithProfile[];
+    const posts: PostWithProfile[] = (data || []).map((post: any) => ({
+      ...post,
+      profiles: post.profiles ? {
+        full_name: post.profiles.full_name,
+        title: post.profiles.title,
+        avatar_url: post.profiles.avatar_url,
+      } : { full_name: '', title: '', avatar_url: '' },
+      likes_count: 0,
+      comments_count: 0,
+    }));
 
     const postIds = posts.map(p => p.id);
 
@@ -383,7 +393,8 @@ const Home = () => {
         <ShareDialog
           open={shareDialogOpen.open}
           onOpenChange={(open) => setShareDialogOpen({ open, post: open ? shareDialogOpen.post : null })}
-          postTitle={shareDialogOpen.post.title}
+          title={shareDialogOpen.post.title}
+          url={`${window.location.origin}/posts/${shareDialogOpen.post.id}`}
         />
       )}
     </Layout>

@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Tables } from '@/integrations/supabase/types';
+import { Tables, Database } from '@/integrations/supabase/types';
 
-export type UserSession = Tables<'user_sessions'>;
+export type UserSession = Tables<'public', 'user_sessions'>;
 
 export const useUserSessions = () => {
   const { user } = useAuth();
