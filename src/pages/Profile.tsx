@@ -19,53 +19,68 @@ import {
   Target,
   X,
   Plus,
-  Upload
+  Upload,
+  Edit,
+  Save
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useParams } from "react-router-dom";
 import { useUserFollows } from "@/hooks/useUserFollows";
+import { useUserProfileDetails, SocialLink, Skill, Achievement, LearningPathItem } from "@/hooks/useUserProfileDetails";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Profile = () => {
-  const { user: currentUser } = useAuth(); // Renamed to currentUser to avoid conflict
-  const { userId } = useParams<{ userId: string }>(); // Get user ID from URL params
-  const targetUserId = userId || currentUser?.id; // If userId in URL, view that profile, else current user's
-
-  const storageKey = `profile:${targetUserId || 'guest'}`;
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { user: currentUser } = useAuth();
+  const { userId } = useParams<{ userId: string }>();
+  const targetUserId = userId || currentUser?.id;
+  const { toast } = useToast();
 
   const { isFollowing, toggleFollow, followerCount, followingCount, isLoadingFollowStatus } = useUserFollows(targetUserId);
+  const { profileDetails, isLoading: isLoadingProfile, updateProfileDetails, isUpdating } = useUserProfileDetails(targetUserId);
 
-  const emptyProfile = {
-    name: "",
-    title: "",
-    location: "",
-    joinDate: "",
-    avatar: "",
-    bio: "",
-    // stats.followers and stats.following will be fetched from useUserFollows hook
-    stats: {
-      skillsLearning: 0,
-      roadmapsCompleted: 0,
-      followers: 0,
-      following: 0
-    },
-    skills: [] as { name: string; level: number; category: string }[],
-    achievements: [] as { name: string; description: string; icon: string; date: string }[],
-    learningPath: [] as { skill: string; progress: number; totalLessons: number }[],
-    recentActivity: [] as { type: string; content: string; time: string }[],
-    portfolioUrl: "",
-    socialLinks: [] as { platform: string; url: string; icon: string }[], // New: Social links
-  };
-
-  const [profile, setProfile] = useState(emptyProfile);
   const [editMode, setEditMode] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [formData, setFormData] = useState<any>({});
+
+  // This query fetches the public user data (name, avatar) which is separate from profile details
+  const { data: publicUserData, isLoading: isLoadingPublicUser } = useQuery({
+    queryKey: ['publicProfile', targetUserId],
+    queryFn: async () => {
+      if (!targetUserId) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_url')
+        .eq('user_id', targetUserId)
+        .single();
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    },
+    enabled: !!targetUserId,
+  });
+
+  useEffect(() => {
+    if (profileDetails && publicUserData) {
+      setFormData({
+        name: publicUserData.full_name || '',
+        title: profileDetails.job_title || '',
+        location: profileDetails.location || '',
+        joinDate: profileDetails.join_date || '',
+        avatar: publicUserData.avatar_url || '',
+        bio: profileDetails.bio || '',
+        portfolioUrl: profileDetails.portfolio_url || '',
+        socialLinks: profileDetails.social_links || [],
+        skills: profileDetails.skills || [],
+        achievements: profileDetails.achievements || [],
+        learningPath: profileDetails.learning_path || [],
+      });
+    }
+  }, [profileDetails, publicUserData]);
 
   // Fetch user's roadmaps
-  const { data: userRoadmaps, isLoading: isLoadingRoadmaps, error: roadmapsError } = useQuery({
+  const { data: userRoadmaps, isLoading: isLoadingRoadmaps } = useQuery({
     queryKey: ['userRoadmaps', targetUserId],
     queryFn: async () => {
       if (!targetUserId) return [];
@@ -80,66 +95,46 @@ const Profile = () => {
     enabled: !!targetUserId,
   });
 
-  useEffect(() => {
+  const handleSave = async () => {
+    if (!targetUserId) return;
     try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        // Merge saved data with fetched follower/following counts
-        setProfile(prev => ({ ...emptyProfile, ...JSON.parse(saved), stats: { ...prev.stats, followers: followerCount, following: followingCount } }));
-      } else {
-        setProfile(prev => ({ ...emptyProfile, stats: { ...prev.stats, followers: followerCount, following: followingCount } }));
-      }
-    } catch {
-      setProfile(prev => ({ ...emptyProfile, stats: { ...prev.stats, followers: followerCount, following: followingCount } }));
+      // Update profile details (data in user_profile_details table)
+      await updateProfileDetails({
+        user_id: targetUserId,
+        job_title: formData.title,
+        location: formData.location,
+        join_date: formData.joinDate,
+        bio: formData.bio,
+        portfolio_url: formData.portfolioUrl,
+        social_links: formData.socialLinks,
+        skills: formData.skills,
+        achievements: formData.achievements,
+        learning_path: formData.learningPath,
+      });
+
+      // Update public user data (data in profiles table)
+      const { error: userUpdateError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: formData.name,
+          avatar_url: formData.avatar,
+        })
+        .eq('user_id', targetUserId);
+
+      if (userUpdateError) throw userUpdateError;
+
+      toast({ title: "Profile updated successfully!" });
+      setEditMode(false);
+    } catch (error: any) {
+      toast({ title: "Failed to update profile", description: error.message, variant: "destructive" });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetUserId, followerCount, followingCount]); // Added followerCount and followingCount to dependencies
-
-  useEffect(() => {
-    try {
-      // Only save non-dynamic stats to local storage
-      const { followers, following, ...restStats } = profile.stats;
-      localStorage.setItem(storageKey, JSON.stringify({ ...profile, stats: restStats }));
-    } catch (error) {
-      console.warn('Failed to load profile data:', error);
-    }
-  }, [profile, storageKey]);
-
-  const initials = (profile.name || 'User').split(' ').map(n => n[0]).join('');
-
-  const handleProfileField = (key: string, value: any) => setProfile(prev => ({ ...prev, [key]: value }));
-  const handleStat = (key: keyof typeof emptyProfile.stats, value: number) => setProfile(prev => ({ ...prev, stats: { ...prev.stats, [key]: value } }));
-
-  const addSkill = () => setProfile(prev => ({ ...prev, skills: [ ...(prev.skills || []), { name: '', level: 0, category: '' } ] }));
-  const removeSkill = (idx: number) => setProfile(prev => ({ ...prev, skills: (prev.skills || []).filter((_, i) => i !== idx) }));
-
-  const addAchievement = () => setProfile(prev => ({ ...prev, achievements: [ ...(prev.achievements || []), { name: '', description: '', icon: '🏆', date: '' } ] }));
-  const removeAchievement = (idx: number) => setProfile(prev => ({ ...prev, achievements: (prev.achievements || []).filter((_, i) => i !== idx) }));
-
-  const addLearningPath = () => setProfile(prev => ({ ...prev, learningPath: [ ...(prev.learningPath || []), { skill: '', progress: 0, totalLessons: 0 } ] }));
-  const removeLearningPath = (idx: number) => setProfile(prev => ({ ...prev, learningPath: (prev.learningPath || []).filter((_, i) => i !== idx) }));
-
-  const addActivity = () => setProfile(prev => ({ ...prev, recentActivity: [ ...(prev.recentActivity || []), { type: 'completed', content: '', time: '' } ] }));
-  const removeActivity = (idx: number) => setProfile(prev => ({ ...prev, recentActivity: (prev.recentActivity || []).filter((_, i) => i !== idx) }));
-
-  const addSocialLink = () => setProfile(prev => ({ ...prev, socialLinks: [ ...(prev.socialLinks || []), { platform: '', url: '', icon: '' } ] }));
-  const removeSocialLink = (idx: number) => setProfile(prev => ({ ...prev, socialLinks: (prev.socialLinks || []).filter((_, i) => i !== idx) }));
-
-  const startEdit = () => setEditMode(true);
-  const cancelEdit = () => setEditMode(false);
-  const saveEdit = () => setEditMode(false);
-
-  const onPickAvatar = () => fileInputRef.current?.click();
-  const onAvatarSelected: React.ChangeEventHandler<HTMLInputElement> = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      handleProfileField('avatar', dataUrl);
-    };
-    reader.readAsDataURL(file);
   };
+
+  const initials = (publicUserData?.full_name || 'U').split(' ').map(n => n[0]).join('');
+
+  if (isLoadingProfile || isLoadingPublicUser) {
+    return <Layout><div>Loading profile...</div></Layout>;
+  }
 
   return (
     <Layout>
@@ -150,47 +145,45 @@ const Profile = () => {
             <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
               <div className="relative">
                 <Avatar className="h-24 w-24">
-                  <AvatarImage src={profile.avatar} />
+                  <AvatarImage src={formData.avatar} />
                   <AvatarFallback className="text-2xl">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
                 {editMode && (
-                  <Button size="sm" variant="outline" className="absolute -bottom-2 left-1/2 -translate-x-1/2" onClick={onPickAvatar}>
+                  <Button size="sm" variant="outline" className="absolute -bottom-2 left-1/2 -translate-x-1/2">
                     <Upload className="h-4 w-4 mr-1" /> Upload
                   </Button>
                 )}
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onAvatarSelected} />
               </div>
 
               <div className="flex-1 space-y-4">
                 <div>
                   {editMode ? (
                     <div className="space-y-2">
-                      <Input placeholder="Your Name" value={profile.name} onChange={(e) => handleProfileField('name', e.target.value)} />
-                      <Input placeholder="Title" value={profile.title} onChange={(e) => handleProfileField('title', e.target.value)} />
+                      <Input placeholder="Your Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                      <Input placeholder="Title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4" />
-                        <Input placeholder="Location" value={profile.location} onChange={(e) => handleProfileField('location', e.target.value)} />
+                        <Input placeholder="Location" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} />
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4" />
-                        <Input placeholder="Joined (e.g., January 2025)" value={profile.joinDate} onChange={(e) => handleProfileField('joinDate', e.target.value)} />
+                        <Input placeholder="Joined (e.g., January 2025)" value={formData.joinDate} onChange={(e) => setFormData({ ...formData, joinDate: e.target.value })} />
                       </div>
-                      <Input placeholder="Avatar URL" value={profile.avatar} onChange={(e) => handleProfileField('avatar', e.target.value)} />
                     </div>
                   ) : (
                     <>
-                      <h1 className="text-3xl font-bold">{profile.name || 'Your Name'}</h1>
-                      <p className="text-lg text-muted-foreground">{profile.title || 'Your Title'}</p>
+                      <h1 className="text-3xl font-bold">{publicUserData?.full_name || 'Your Name'}</h1>
+                      <p className="text-lg text-muted-foreground">{profileDetails?.job_title || 'Your Title'}</p>
                       <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
                         <div className="flex items-center space-x-1">
                           <MapPin className="h-4 w-4" />
-                          <span>{profile.location || 'Your Location'}</span>
+                          <span>{profileDetails?.location || 'Your Location'}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <Calendar className="h-4 w-4" />
-                          <span>Joined {profile.joinDate || '—'}</span>
+                          <span>Joined {profileDetails?.join_date || '—'}</span>
                         </div>
                       </div>
                     </>
@@ -198,20 +191,20 @@ const Profile = () => {
                 </div>
 
                 {editMode ? (
-                  <Textarea placeholder="Short bio..." value={profile.bio} onChange={(e) => handleProfileField('bio', e.target.value)} rows={3} />
+                  <Textarea placeholder="Short bio..." value={formData.bio} onChange={(e) => setFormData({ ...formData, bio: e.target.value })} rows={3} />
                 ) : (
-                  <p className="text-foreground max-w-2xl">{profile.bio || 'Tell the world about yourself...'}</p>
+                  <p className="text-foreground max-w-2xl">{profileDetails?.bio || 'Tell the world about yourself...'}</p>
                 )}
 
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="grid grid-cols-4 gap-6 text-center">
                     <div>
-                      <div className="text-2xl font-bold text-primary">{profile.stats.skillsLearning}</div>
-                      <div className="text-xs text-muted-foreground">Skills Learning</div>
+                      <div className="text-2xl font-bold text-primary">{profileDetails?.total_posts || 0}</div>
+                      <div className="text-xs text-muted-foreground">Posts</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-primary">{profile.stats.roadmapsCompleted}</div>
-                      <div className="text-xs text-muted-foreground">Roadmaps Done</div>
+                      <div className="text-2xl font-bold text-primary">{profileDetails?.total_roadmaps || 0}</div>
+                      <div className="text-xs text-muted-foreground">Roadmaps</div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-primary">{followerCount}</div>
@@ -228,19 +221,27 @@ const Profile = () => {
                   {editMode ? (
                     <div className="space-y-2 w-full">
                       <Label>Social Links</Label>
-                      {(profile.socialLinks || []).map((link, index) => (
+                      {(formData.socialLinks || []).map((link: SocialLink, index: number) => (
                         <div key={index} className="flex items-center gap-2">
-                          <Input placeholder="Platform (e.g., LinkedIn)" value={link.platform} onChange={(e) => setProfile(prev => ({ ...prev, socialLinks: prev.socialLinks.map((l, i) => i === index ? { ...l, platform: e.target.value } : l) }))} />
-                          <Input placeholder="URL" value={link.url} onChange={(e) => setProfile(prev => ({ ...prev, socialLinks: prev.socialLinks.map((l, i) => i === index ? { ...l, url: e.target.value } : l) }))} />
-                          <Button variant="ghost" size="sm" onClick={() => removeSocialLink(index)}><X className="h-4 w-4" /></Button>
+                          <Input placeholder="Platform (e.g., LinkedIn)" value={link.platform} onChange={(e) => {
+                            const newLinks = [...formData.socialLinks];
+                            newLinks[index].platform = e.target.value;
+                            setFormData({ ...formData, socialLinks: newLinks });
+                          }} />
+                          <Input placeholder="URL" value={link.url} onChange={(e) => {
+                            const newLinks = [...formData.socialLinks];
+                            newLinks[index].url = e.target.value;
+                            setFormData({ ...formData, socialLinks: newLinks });
+                          }} />
+                          <Button variant="ghost" size="sm" onClick={() => setFormData({ ...formData, socialLinks: formData.socialLinks.filter((_: any, i: number) => i !== index) })}><X className="h-4 w-4" /></Button>
                         </div>
                       ))}
-                      <Button variant="outline" size="sm" onClick={addSocialLink}><Plus className="h-4 w-4 mr-1" /> Add Social Link</Button>
+                      <Button variant="outline" size="sm" onClick={() => setFormData({ ...formData, socialLinks: [...(formData.socialLinks || []), { platform: '', url: '' }] })}><Plus className="h-4 w-4 mr-1" /> Add Social Link</Button>
                     </div>
                   ) : (
-                    (profile.socialLinks || []).length > 0 && (
+                    (profileDetails?.social_links || []).length > 0 && (
                       <div className="flex flex-wrap gap-3">
-                        {(profile.socialLinks || []).map((link, index) => (
+                        {(profileDetails?.social_links || []).map((link: SocialLink, index: number) => (
                           <a key={index} href={link.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-400 hover:underline">
                             <ExternalLink className="h-4 w-4" />
                             <span>{link.platform}</span>
@@ -253,7 +254,7 @@ const Profile = () => {
               </div>
 
               <div className="flex flex-col space-y-2">
-                {currentUser?.id !== targetUserId && ( // Only show follow/unfollow if not viewing own profile
+                {currentUser?.id !== targetUserId && (
                   <Button
                     variant={isFollowing ? "outline" : "default"}
                     onClick={toggleFollow}
@@ -265,23 +266,22 @@ const Profile = () => {
                 )}
                 {editMode ? (
                   <>
-                    <Button className="w-full" onClick={saveEdit}>Save</Button>
-                    <Button variant="outline" className="w-full" onClick={cancelEdit}>Cancel</Button>
+                    <Button className="w-full" onClick={handleSave} disabled={isUpdating}>
+                      {isUpdating ? 'Saving...' : <><Save className="h-4 w-4 mr-2" />Save</>}
+                    </Button>
+                    <Button variant="outline" className="w-full" onClick={() => setEditMode(false)}>Cancel</Button>
                   </>
                 ) : (
                   <>
                     {currentUser?.id === targetUserId && (
-                      <Button className="w-full" onClick={startEdit}>Edit Profile</Button>
+                      <Button className="w-full" onClick={() => setEditMode(true)}><Edit className="h-4 w-4 mr-2" />Edit Profile</Button>
                     )}
                     <Button variant="outline" className="w-full">
                       <ExternalLink className="h-4 w-4 mr-2" />
-                      {profile.portfolioUrl ? (
-                        <a href={profile.portfolioUrl} target="_blank" rel="noreferrer">Portfolio</a>
+                      {profileDetails?.portfolio_url ? (
+                        <a href={profileDetails.portfolio_url} target="_blank" rel="noreferrer">Portfolio</a>
                       ) : 'Portfolio'}
                     </Button>
-                    {editMode && currentUser?.id === targetUserId && (
-                      <Input placeholder="Portfolio URL" value={profile.portfolioUrl} onChange={(e) => handleProfileField('portfolioUrl', e.target.value)} />
-                    )}
                   </>
                 )}
               </div>
@@ -290,7 +290,7 @@ const Profile = () => {
         </Card>
 
         {/* Tabs Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="roadmaps">Roadmaps</TabsTrigger>
@@ -310,17 +310,13 @@ const Profile = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {(profile.learningPath || []).length === 0 && (
+                  {(profileDetails?.learning_path || []).length === 0 && (
                     <div className="text-sm text-muted-foreground">No current learning yet.</div>
                   )}
-                  {profile.learningPath.map((item, index) => (
+                  {(profileDetails?.learning_path || []).map((item: LearningPathItem, index: number) => (
                     <div key={index} className="space-y-2">
                       <div className="flex justify-between items-center gap-2">
-                        {editMode ? (
-                          <Input placeholder="Skill/Subject" value={item.skill} onChange={(e) => setProfile(prev => ({ ...prev, learningPath: prev.learningPath.map((lp, i) => i === index ? { ...lp, skill: e.target.value } : lp) }))} />
-                        ) : (
-                          <h4 className="font-medium text-sm">{item.skill}</h4>
-                        )}
+                        <h4 className="font-medium text-sm">{item.skill}</h4>
                         <span className="text-sm text-muted-foreground">{item.progress}%</span>
                       </div>
                       <div className="w-full bg-muted rounded-full h-2">
@@ -329,24 +325,11 @@ const Profile = () => {
                           style={{ width: `${item.progress}%` }}
                         />
                       </div>
-                      <div className="flex items-center gap-2">
-                        {editMode ? (
-                          <>
-                            <Input type="number" placeholder="Progress %" value={item.progress} onChange={(e) => setProfile(prev => ({ ...prev, learningPath: prev.learningPath.map((lp, i) => i === index ? { ...lp, progress: Number(e.target.value) } : lp) }))} />
-                            <Input type="number" placeholder="Total lessons" value={item.totalLessons} onChange={(e) => setProfile(prev => ({ ...prev, learningPath: prev.learningPath.map((lp, i) => i === index ? { ...lp, totalLessons: Number(e.target.value) } : lp) }))} />
-                            <Button variant="ghost" size="sm" onClick={() => removeLearningPath(index)}><X className="h-4 w-4" /></Button>
-                          </>
-                        ) : (
-                          <p className="text-xs text-muted-foreground">
-                            {Math.round((item.progress / 100) * item.totalLessons)} of {item.totalLessons} lessons
-                          </p>
-                        )}
-                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {item.currentLesson} of {item.totalLessons} lessons
+                      </p>
                     </div>
                   ))}
-                  {editMode && (
-                    <Button variant="outline" size="sm" onClick={addLearningPath} className="mt-2"><Plus className="h-4 w-4 mr-1" /> Add Item</Button>
-                  )}
                 </CardContent>
               </Card>
 
@@ -359,33 +342,7 @@ const Profile = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {(profile.recentActivity || []).length === 0 && (
-                    <div className="text-sm text-muted-foreground">No activity yet.</div>
-                  )}
-                  {profile.recentActivity.map((activity, index) => (
-                    <div key={index} className="flex items-start space-x-3">
-                      <div className={`w-2 h-2 rounded-full mt-2 ${
-                        activity.type === 'completed' ? 'bg-success' :
-                        activity.type === 'shared' ? 'bg-primary' :
-                        activity.type === 'joined' ? 'bg-accent' :
-                        'bg-yellow-500'
-                      }`} />
-                      <div className="flex-1 min-w-0">
-                        {editMode ? (
-                          <Input value={activity.content} onChange={(e) => setProfile(prev => ({ ...prev, recentActivity: prev.recentActivity.map((a, i) => i === index ? { ...a, content: e.target.value } : a) }))} />
-                        ) : (
-                          <p className="text-sm">{activity.content}</p>
-                        )}
-                        <p className="text-xs text-muted-foreground">{activity.time}</p>
-                      </div>
-                      {editMode && (
-                        <Button variant="ghost" size="sm" onClick={() => removeActivity(index)}><X className="h-4 w-4" /></Button>
-                      )}
-                    </div>
-                  ))}
-                  {editMode && (
-                    <Button variant="outline" size="sm" onClick={addActivity} className="mt-2"><Plus className="h-4 w-4 mr-1" /> Add Activity</Button>
-                  )}
+                  <div className="text-sm text-muted-foreground">Activity tracking coming soon.</div>
                 </CardContent>
               </Card>
             </div>
@@ -402,8 +359,6 @@ const Profile = () => {
               <CardContent className="space-y-4">
                 {isLoadingRoadmaps ? (
                   <div className="text-sm text-muted-foreground">Loading roadmaps...</div>
-                ) : roadmapsError ? (
-                  <div className="text-sm text-destructive">Error loading roadmaps: {roadmapsError.message}</div>
                 ) : (userRoadmaps || []).length === 0 ? (
                   <div className="text-sm text-muted-foreground">No roadmaps created yet.</div>
                 ) : (
@@ -435,33 +390,17 @@ const Profile = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid gap-6">
-                  {(profile.skills || []).length === 0 && (
+                  {(profileDetails?.skills || []).length === 0 && (
                     <div className="text-sm text-muted-foreground">No skills yet.</div>
                   )}
-                  {profile.skills.map((skill, index) => (
+                  {(profileDetails?.skills || []).map((skill: Skill, index: number) => (
                     <div key={index} className="space-y-2">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center space-x-3">
-                          {editMode ? (
-                            <>
-                              <Input placeholder="Skill name" value={skill.name} onChange={(e) => setProfile(prev => ({ ...prev, skills: prev.skills.map((s, i) => i === index ? { ...s, name: e.target.value } : s) }))} />
-                              <Input placeholder="Category" value={skill.category} onChange={(e) => setProfile(prev => ({ ...prev, skills: prev.skills.map((s, i) => i === index ? { ...s, category: e.target.value } : s) }))} />
-                            </>
-                          ) : (
-                            <>
-                              <h3 className="font-medium">{skill.name}</h3>
-                              <Badge variant="outline" className="text-xs">{skill.category}</Badge>
-                            </>
-                          )}
+                          <h3 className="font-medium">{skill.name}</h3>
+                          <Badge variant="outline" className="text-xs">{skill.category}</Badge>
                         </div>
-                        {editMode ? (
-                          <div className="flex items-center gap-2">
-                            <Input type="number" placeholder="%" value={skill.level} onChange={(e) => setProfile(prev => ({ ...prev, skills: prev.skills.map((s, i) => i === index ? { ...s, level: Number(e.target.value) } : s) }))} className="w-20" />
-                            <Button variant="ghost" size="sm" onClick={() => removeSkill(index)}><X className="h-4 w-4" /></Button>
-                          </div>
-                        ) : (
-                          <span className="text-sm font-medium">{skill.level}%</span>
-                        )}
+                        <span className="text-sm font-medium">{skill.level}%</span>
                       </div>
                       <div className="w-full bg-muted rounded-full h-2">
                         <div
@@ -471,9 +410,6 @@ const Profile = () => {
                       </div>
                     </div>
                   ))}
-                  {editMode && (
-                    <Button variant="outline" size="sm" onClick={addSkill}><Plus className="h-4 w-4 mr-1" /> Add Skill</Button>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -481,43 +417,26 @@ const Profile = () => {
 
           <TabsContent value="achievements" className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
-              {(profile.achievements || []).length === 0 && (
+              {(profileDetails?.achievements || []).length === 0 && (
                 <Card className="shadow-card">
                   <CardContent className="p-6 text-sm text-muted-foreground">No achievements yet.</CardContent>
                 </Card>
               )}
-              {profile.achievements.map((achievement, index) => (
+              {(profileDetails?.achievements || []).map((achievement: Achievement, index: number) => (
                 <Card key={index} className="shadow-card hover:shadow-elevated transition-all duration-300">
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-4">
                       <div className="text-3xl">{achievement.icon || '🏆'}</div>
                       <div className="flex-1">
-                        {editMode ? (
-                          <div className="space-y-2">
-                            <Input placeholder="Name" value={achievement.name} onChange={(e) => setProfile(prev => ({ ...prev, achievements: prev.achievements.map((a, i) => i === index ? { ...a, name: e.target.value } : a) }))} />
-                            <Input placeholder="Description" value={achievement.description} onChange={(e) => setProfile(prev => ({ ...prev, achievements: prev.achievements.map((a, i) => i === index ? { ...a, description: e.target.value } : a) }))} />
-                            <div className="flex items-center gap-2">
-                              <Input placeholder="Icon (emoji)" value={achievement.icon} onChange={(e) => setProfile(prev => ({ ...prev, achievements: prev.achievements.map((a, i) => i === index ? { ...a, icon: e.target.value } : a) }))} className="w-32" />
-                              <Input placeholder="Date" value={achievement.date} onChange={(e) => setProfile(prev => ({ ...prev, achievements: prev.achievements.map((a, i) => i === index ? { ...a, date: e.target.value } : a) }))} />
-                              <Button variant="ghost" size="sm" onClick={() => removeAchievement(index)}><X className="h-4 w-4" /></Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <h3 className="font-semibold text-lg">{achievement.name}</h3>
-                            <p className="text-muted-foreground text-sm mb-2">{achievement.description}</p>
-                            <p className="text-xs text-muted-foreground">{achievement.date}</p>
-                          </>
-                        )}
+                        <h3 className="font-semibold text-lg">{achievement.name}</h3>
+                        <p className="text-muted-foreground text-sm mb-2">{achievement.description}</p>
+                        <p className="text-xs text-muted-foreground">{achievement.date}</p>
                       </div>
                       <Award className="h-5 w-5 text-yellow-500" />
                     </div>
                   </CardContent>
                 </Card>
               ))}
-              {editMode && (
-                <Button variant="outline" size="sm" onClick={addAchievement}><Plus className="h-4 w-4 mr-1" /> Add Achievement</Button>
-              )}
             </div>
           </TabsContent>
 
@@ -527,40 +446,7 @@ const Profile = () => {
                 <CardTitle>Learning Activity</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  {(profile.recentActivity || []).length === 0 && (
-                    <div className="text-sm text-muted-foreground">No activity yet.</div>
-                  )}
-                  {profile.recentActivity.map((activity, index) => (
-                    <div key={index} className="flex items-start space-x-4 pb-4 border-b last:border-b-0">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        activity.type === 'completed' ? 'bg-success/10 text-success' :
-                        activity.type === 'shared' ? 'bg-primary/10 text-primary' :
-                        activity.type === 'joined' ? 'bg-accent/10 text-accent' :
-                        'bg-yellow-500/10 text-yellow-600'
-                      }`}>
-                        {activity.type === 'completed' && <Target className="h-5 w-5" />}
-                        {activity.type === 'shared' && <ExternalLink className="h-5 w-5" />}
-                        {activity.type === 'joined' && <Users className="h-5 w-5" />}
-                        {activity.type === 'achievement' && <Award className="h-5 w-5" />}
-                      </div>
-                      <div className="flex-1">
-                        {editMode ? (
-                          <Input value={activity.content} onChange={(e) => setProfile(prev => ({ ...prev, recentActivity: prev.recentActivity.map((a, i) => i === index ? { ...a, content: e.target.value } : a) }))} />
-                        ) : (
-                          <p className="font-medium">{activity.content}</p>
-                        )}
-                        <p className="text-sm text-muted-foreground">{activity.time}</p>
-                      </div>
-                      {editMode && (
-                        <Button variant="ghost" size="sm" onClick={() => removeActivity(index)}><X className="h-4 w-4" /></Button>
-                      )}
-                    </div>
-                  ))}
-                  {editMode && (
-                    <Button variant="outline" size="sm" onClick={addActivity}><Plus className="h-4 w-4 mr-1" /> Add Activity</Button>
-                  )}
-                </div>
+                <div className="text-sm text-muted-foreground">Activity tracking coming soon.</div>
               </CardContent>
             </Card>
           </TabsContent>

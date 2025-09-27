@@ -133,13 +133,19 @@ const CreatePost = () => {
           .filter(memberId => memberId !== user.id); // Exclude the post author
 
         for (const recipientId of notificationRecipients) {
-          await createNotification({
-            user_id: recipientId,
-            type: 'community_post',
-            title: `New post in your community: "${title}"`, // Use post title
-            body: `Check out the latest post by ${user.user_metadata.full_name || 'a member'}.`,
-            data: { post_id: newPost.id, community_id: communityId, post_title: newPost.title },
-          });
+          // The useNotifications hook does not export a createNotification function.
+          // This needs to be implemented or sourced from elsewhere.
+          // For now, we will log the intent to create a notification.
+          console.log(`Intending to create notification for user ${recipientId}`);
+          
+          // Example of what the call might look like if available:
+          // await createNotification({
+          //   user_id: recipientId,
+          //   type: 'community_post',
+          //   title: `New post in your community: "${title}"`,
+          //   body: `Check out the latest post by ${user.user_metadata.full_name || 'a member'}.`,
+          //   data: { post_id: newPost.id, community_id: communityId, post_title: newPost.title },
+          // });
         }
       }
     }

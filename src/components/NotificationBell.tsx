@@ -3,9 +3,24 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNotifications } from "@/hooks/useNotifications";
+import { Link } from "react-router-dom";
 
 const NotificationBell = () => {
   const { notifications, unreadCount, isLoading, markAllAsRead, markAsRead, deleteNotification, createTestNotification } = useNotifications();
+
+  const getNotificationLink = (notification: any) => {
+    if (notification.data?.roadmap_id) {
+      return `/roadmaps/${notification.data.roadmap_id}`;
+    }
+    if (notification.data?.post_id) {
+      // Assuming a route structure for posts
+      return `/posts/${notification.data.post_id}`;
+    }
+    if (notification.data?.follower_id) {
+      return `/profile/${notification.data.follower_id}`;
+    }
+    return '#';
+  };
 
   return (
     <DropdownMenu>
@@ -21,7 +36,7 @@ const NotificationBell = () => {
         <div className="px-3 py-2 flex items-center justify-between">
           <DropdownMenuLabel className="p-0">Notifications</DropdownMenuLabel>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={markAllAsRead} className="gap-1">
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); markAllAsRead(); }} className="gap-1">
               <CheckCheck className="h-4 w-4" /> Mark all read
             </Button>
           </div>
@@ -41,25 +56,27 @@ const NotificationBell = () => {
             </div>
           ) : (
             notifications.map((n) => (
-              <div key={n.id} className={`px-3 py-2 border-b last:border-b-0 ${!n.read_at ? 'bg-accent/40' : ''}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="font-medium text-sm">{n.title}</div>
-                    {n.body && <div className="text-xs text-muted-foreground mt-0.5 whitespace-pre-line">{n.body}</div>}
-                    <div className="text-[10px] text-muted-foreground mt-1">{new Date(n.created_at).toLocaleString()}</div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {!n.read_at && (
-                      <Button size="icon" variant="ghost" onClick={() => markAsRead(n.id)} aria-label="Mark as read">
-                        <CheckCheck className="h-4 w-4" />
+              <DropdownMenuItem key={n.id} asChild className={`border-b last:border-b-0 ${!n.read_at ? 'bg-accent/40' : ''}`}>
+                <Link to={getNotificationLink(n)} className="block w-full">
+                  <div className="flex items-start justify-between gap-2 w-full">
+                    <div className="flex-1">
+                      <div className="font-medium text-sm">{n.title}</div>
+                      {n.body && <div className="text-xs text-muted-foreground mt-0.5 whitespace-pre-line">{n.body}</div>}
+                      <div className="text-[10px] text-muted-foreground mt-1">{new Date(n.created_at).toLocaleString()}</div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {!n.read_at && (
+                        <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); markAsRead(n.id); }} aria-label="Mark as read">
+                          <CheckCheck className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteNotification(n.id); }} aria-label="Delete">
+                        <Trash2 className="h-4 w-4" />
                       </Button>
-                    )}
-                    <Button size="icon" variant="ghost" onClick={() => deleteNotification(n.id)} aria-label="Delete">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </Link>
+              </DropdownMenuItem>
             ))
           )}
         </div>

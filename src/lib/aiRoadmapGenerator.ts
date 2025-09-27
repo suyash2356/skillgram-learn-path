@@ -89,7 +89,7 @@ export const callAIGenerator = async (prompt: string): Promise<any> => {
 };
 
 // Mock AI response function (moved from CreateRoadmap.tsx)
-const generateMockRoadmap = (prompt: string, recommendedResources: any[], useRecommendedResources: boolean) => {
+export const generateMockRoadmap = (prompt: string, recommendedResources: any[], useRecommendedResources: boolean) => {
   const titleMatch = prompt.match(/Generate a detailed learning roadmap for "(.*?)"/);
   const title = titleMatch ? titleMatch[1] : 'Personalized Learning Roadmap';
 

@@ -26,7 +26,7 @@ import { supabase as rawSupabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { TypedSupabaseClient } from "@/integrations/supabase/client";
 import { TablesInsert, Database } from "@/integrations/supabase/types";
-import { generateAIPrompt, callAIGenerator } from "@/lib/aiRoadmapGenerator";
+import { generateAIPrompt, callAIGenerator, generateMockRoadmap } from "@/lib/aiRoadmapGenerator";
 
 const supabase = rawSupabase as TypedSupabaseClient;
 
@@ -261,16 +261,19 @@ const CreateRoadmap = () => {
     }
   };
 
-  const previewRoadmap = generateAIPrompt({
-    title: formData.title,
-    description: formData.description,
-    skillLevel: skillLevels.find(level => level.value === formData.skillLevel)?.label || 'Not specified',
-    timeCommitment: timeCommitments.find(time => time.value === formData.timeCommitment)?.label || 'Not specified',
-    targetRole: formData.targetRole,
-    preferredLearningStyle: learningStyles.find(style => style.value === formData.preferredLearningStyle)?.label || 'Not specified',
-    focusAreas: formData.focusAreas,
-    deadline: formData.deadline,
-  }, [], false // No recommended resources for preview, and don't use them.
+  const previewRoadmap = generateMockRoadmap(
+    generateAIPrompt({
+      title: formData.title,
+      description: formData.description,
+      skillLevel: skillLevels.find(level => level.value === formData.skillLevel)?.label || 'Not specified',
+      timeCommitment: timeCommitments.find(time => time.value === formData.timeCommitment)?.label || 'Not specified',
+      targetRole: formData.targetRole,
+      preferredLearningStyle: learningStyles.find(style => style.value === formData.preferredLearningStyle)?.label || 'Not specified',
+      focusAreas: formData.focusAreas,
+      deadline: formData.deadline,
+    }), 
+    [], 
+    false
   );
 
   return (

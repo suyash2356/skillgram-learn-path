@@ -9,11 +9,13 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 
 const Settings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const storageKey = `settings:${user?.id || 'guest'}`;
+  const { preferences, updatePreferences, isLoading: isLoadingPreferences } = useUserPreferences();
+
   const [reportSubject, setReportSubject] = useState("");
   const [reportDetails, setReportDetails] = useState("");
 
@@ -24,79 +26,63 @@ const Settings = () => {
   });
 
   const [notifications, setNotifications] = useState({
-    productUpdates: true,
-    roadmapActivity: true,
-    weeklyDigest: false,
-    marketingEmails: false,
-    pushEnabled: false,
+    product_updates: true,
+    roadmap_activity: true,
+    weekly_digest: false,
+    marketing_emails: false,
+    push_enabled: false,
   });
 
   const [privacy, setPrivacy] = useState({
-    profileVisibility: "public" as "public" | "private" | "friends",
-    showFollowerCounts: true,
-    showActivity: true,
+    profile_visibility: "public" as "public" | "private" | "friends",
+    show_follower_counts: true,
+    show_activity: true,
   });
 
   const [security, setSecurity] = useState({
-    twoFactorEnabled: false,
-    loginAlerts: true,
+    two_factor_enabled: false,
+    login_alerts: true,
   });
 
   const [newPassword, setNewPassword] = useState("");
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setAccount(parsed.account || account);
-        setNotifications(parsed.notifications || notifications);
-        setPrivacy(parsed.privacy || privacy);
-        setSecurity(parsed.security || security);
-      } else {
-        // hydrate account from Supabase user if available
-        setAccount(a => ({
-          ...a,
-          displayName: (user as any)?.user_metadata?.displayName || a.displayName,
-          email: user?.email || a.email,
-          website: (user as any)?.user_metadata?.website || a.website,
-        }));
-      }
-    } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify({ account, notifications, privacy, security }));
-    } catch {}
-  }, [account, notifications, privacy, security, storageKey]);
-
-  const exportData = async () => {
-    try {
-      const blob = new Blob([JSON.stringify({ account, notifications, privacy, security }, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'settings-export.json'; a.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.warn('Failed to save account data:', error);
+    if (user) {
+      setAccount({
+        displayName: (user as any)?.user_metadata?.displayName || user.email || '',
+        email: user.email || '',
+        website: (user as any)?.user_metadata?.website || '',
+      });
     }
-  };
+    if (preferences) {
+      setNotifications(current => ({ ...current, ...(preferences.email_notifications || {}) }));
+      setPrivacy(current => ({ ...current, ...(preferences.privacy_settings || {}) }));
+      setSecurity(current => ({ ...current, ...(preferences.interface_settings?.security || {}) }));
+    }
+  }, [user, preferences]);
 
   const saveAccount = async () => {
     try {
-      // Update auth user metadata and/or email
       const updates: any = { data: { displayName: account.displayName, website: account.website } };
       if (account.email && account.email !== user?.email) updates.email = account.email;
       const { error } = await supabase.auth.updateUser(updates);
-      if (error) {
-        toast({ title: 'Account save failed', description: error.message, variant: 'destructive' });
-      } else {
-        toast({ title: 'Account settings saved' });
-      }
+      if (error) throw error;
+      toast({ title: 'Account settings saved' });
     } catch (e: any) {
       toast({ title: 'Account save failed', description: e?.message || '', variant: 'destructive' });
+    }
+  };
+
+  const savePreferences = async () => {
+    try {
+      await updatePreferences({
+        email_notifications: notifications,
+        privacy_settings: privacy,
+        interface_settings: { security },
+      });
+      toast({ title: 'Preferences saved successfully' });
+    } catch (error: any) {
+      toast({ title: 'Failed to save preferences', description: error.message, variant: 'destructive' });
     }
   };
 
@@ -105,13 +91,13 @@ const Settings = () => {
       try {
         const perm = await Notification.requestPermission();
         if (perm !== 'granted') {
-          setNotifications(n => ({ ...n, pushEnabled: false }));
+          setNotifications(n => ({ ...n, push_enabled: false }));
           toast({ title: 'Push blocked', description: 'Please allow notifications in your browser settings.' });
           return;
         }
       } catch {}
     }
-    setNotifications(n => ({ ...n, pushEnabled: value }));
+    setNotifications(n => ({ ...n, push_enabled: value }));
   };
 
   const updatePassword = async () => {
@@ -135,20 +121,15 @@ const Settings = () => {
     const second = prompt('Type DELETE to confirm');
     if ((second || '').trim().toUpperCase() !== 'DELETE') return;
     try {
-      // Remove user data we own in this app (example: roadmaps and their children)
-      const { data: steps, error: stepsErr } = await supabase.from('roadmap_steps').select('id, roadmap_id').in('roadmap_id', (await supabase.from('roadmaps').select('id').eq('user_id', user.id)).data?.map(r => r.id) || []);
-      if (stepsErr) {}
-      if (steps && steps.length > 0) {
-        const stepIds = steps.map(s => s.id);
-        await supabase.from('roadmap_step_resources').delete().in('step_id', stepIds);
-      }
-      await supabase.from('roadmap_steps').delete().in('roadmap_id', (await supabase.from('roadmaps').select('id').eq('user_id', user.id)).data?.map(r => r.id) || []);
-      await supabase.from('roadmaps').delete().eq('user_id', user.id);
+      // This should be handled by a backend function for security and completeness
+      const { error } = await supabase.rpc('delete_user_account');
+      if (error) throw error;
+      
       await supabase.auth.signOut();
-      toast({ title: 'Account deleted' });
+      toast({ title: 'Account deleted successfully' });
       window.location.href = '/';
     } catch (e: any) {
-      toast({ title: 'Failed to delete account', description: e?.message || '', variant: 'destructive' });
+      toast({ title: 'Failed to delete account', description: e?.message || 'An error occurred.', variant: 'destructive' });
     }
   };
 
@@ -169,6 +150,10 @@ const Settings = () => {
     }
   };
 
+  if (isLoadingPreferences) {
+    return <Layout><div>Loading settings...</div></Layout>;
+  }
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-6 max-w-5xl">
@@ -180,7 +165,6 @@ const Settings = () => {
               <TabsTrigger value="notifications" className="whitespace-nowrap">Notifications</TabsTrigger>
               <TabsTrigger value="privacy" className="whitespace-nowrap">Privacy</TabsTrigger>
               <TabsTrigger value="security" className="whitespace-nowrap">Security</TabsTrigger>
-              <TabsTrigger value="data" className="whitespace-nowrap">Data & Export</TabsTrigger>
               <TabsTrigger value="danger" className="whitespace-nowrap">Danger Zone</TabsTrigger>
             </TabsList>
           </div>
@@ -205,7 +189,6 @@ const Settings = () => {
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={saveAccount}>Save</Button>
-                  <Button variant="outline" onClick={() => window.location.reload()}>Cancel</Button>
                 </div>
               </CardContent>
             </Card>
@@ -217,29 +200,28 @@ const Settings = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <Checkbox id="product-updates" checked={notifications.productUpdates} onCheckedChange={(v: boolean) => setNotifications(n => ({ ...n, productUpdates: v }))} />
+                    <Checkbox id="product-updates" checked={notifications.product_updates} onCheckedChange={(v: boolean) => setNotifications(n => ({ ...n, product_updates: v }))} />
                     <Label htmlFor="product-updates">Product updates</Label>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Checkbox id="roadmap-activity" checked={notifications.roadmapActivity} onCheckedChange={(v: boolean) => setNotifications(n => ({ ...n, roadmapActivity: v }))} />
+                    <Checkbox id="roadmap-activity" checked={notifications.roadmap_activity} onCheckedChange={(v: boolean) => setNotifications(n => ({ ...n, roadmap_activity: v }))} />
                     <Label htmlFor="roadmap-activity">Roadmap activity (comments, mentions)</Label>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Checkbox id="weekly-digest" checked={notifications.weeklyDigest} onCheckedChange={(v: boolean) => setNotifications(n => ({ ...n, weeklyDigest: v }))} />
+                    <Checkbox id="weekly-digest" checked={notifications.weekly_digest} onCheckedChange={(v: boolean) => setNotifications(n => ({ ...n, weekly_digest: v }))} />
                     <Label htmlFor="weekly-digest">Weekly email digest</Label>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Checkbox id="marketing-emails" checked={notifications.marketingEmails} onCheckedChange={(v: boolean) => setNotifications(n => ({ ...n, marketingEmails: v }))} />
+                    <Checkbox id="marketing-emails" checked={notifications.marketing_emails} onCheckedChange={(v: boolean) => setNotifications(n => ({ ...n, marketing_emails: v }))} />
                     <Label htmlFor="marketing-emails">Marketing emails</Label>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Checkbox id="push-enabled" checked={notifications.pushEnabled} onCheckedChange={(v: boolean) => handlePushToggle(v)} />
+                    <Checkbox id="push-enabled" checked={notifications.push_enabled} onCheckedChange={(v: boolean) => handlePushToggle(v)} />
                     <Label htmlFor="push-enabled">Enable push notifications</Label>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={() => toast({ title: 'Notification preferences saved' })}>Save</Button>
-                  <Button variant="outline" onClick={() => window.location.reload()}>Cancel</Button>
+                  <Button onClick={savePreferences}>Save</Button>
                 </div>
               </CardContent>
             </Card>
@@ -253,29 +235,28 @@ const Settings = () => {
                   <div>
                     <Label>Profile Visibility</Label>
                     <div className="flex items-center gap-4 mt-2 text-sm">
-                      <label className="flex items-center gap-2"><input type="radio" name="visibility" checked={privacy.profileVisibility==='public'} onChange={() => setPrivacy(p => ({ ...p, profileVisibility: 'public' }))} /> Public</label>
-                      <label className="flex items-center gap-2"><input type="radio" name="visibility" checked={privacy.profileVisibility==='friends'} onChange={() => setPrivacy(p => ({ ...p, profileVisibility: 'friends' }))} /> Friends</label>
-                      <label className="flex items-center gap-2"><input type="radio" name="visibility" checked={privacy.profileVisibility==='private'} onChange={() => setPrivacy(p => ({ ...p, profileVisibility: 'private' }))} /> Private</label>
+                      <label className="flex items-center gap-2"><input type="radio" name="visibility" checked={privacy.profile_visibility==='public'} onChange={() => setPrivacy(p => ({ ...p, profile_visibility: 'public' }))} /> Public</label>
+                      <label className="flex items-center gap-2"><input type="radio" name="visibility" checked={privacy.profile_visibility==='friends'} onChange={() => setPrivacy(p => ({ ...p, profile_visibility: 'friends' }))} /> Friends</label>
+                      <label className="flex items-center gap-2"><input type="radio" name="visibility" checked={privacy.profile_visibility==='private'} onChange={() => setPrivacy(p => ({ ...p, profile_visibility: 'private' }))} /> Private</label>
                     </div>
                   </div>
                   <div>
                     <Label>Show Follower Counts</Label>
                     <div className="flex items-center gap-2 mt-2">
-                      <Checkbox id="show-followers" checked={privacy.showFollowerCounts} onCheckedChange={(v: boolean) => setPrivacy(p => ({ ...p, showFollowerCounts: v }))} />
+                      <Checkbox id="show-followers" checked={privacy.show_follower_counts} onCheckedChange={(v: boolean) => setPrivacy(p => ({ ...p, show_follower_counts: v }))} />
                       <Label htmlFor="show-followers">Display follower/following numbers</Label>
                     </div>
                   </div>
                   <div className="md:col-span-2">
                     <Label>Show Activity</Label>
                     <div className="flex items-center gap-2 mt-2">
-                      <Checkbox id="show-activity" checked={privacy.showActivity} onCheckedChange={(v: boolean) => setPrivacy(p => ({ ...p, showActivity: v }))} />
+                      <Checkbox id="show-activity" checked={privacy.show_activity} onCheckedChange={(v: boolean) => setPrivacy(p => ({ ...p, show_activity: v }))} />
                       <Label htmlFor="show-activity">Allow others to see my recent activity</Label>
                     </div>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={() => toast({ title: 'Privacy settings saved' })}>Save</Button>
-                  <Button variant="outline" onClick={() => window.location.reload()}>Cancel</Button>
+                  <Button onClick={savePreferences}>Save</Button>
                 </div>
               </CardContent>
             </Card>
@@ -286,14 +267,15 @@ const Settings = () => {
               <CardHeader><CardTitle className="text-lg md:text-xl">Security</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <Checkbox id="two-factor" checked={security.twoFactorEnabled} onCheckedChange={(v: boolean) => setSecurity(s => ({ ...s, twoFactorEnabled: v }))} />
+                  <Checkbox id="two-factor" checked={security.two_factor_enabled} onCheckedChange={(v: boolean) => setSecurity(s => ({ ...s, two_factor_enabled: v }))} />
                   <Label htmlFor="two-factor">Enable Two-Factor Authentication (via email)</Label>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Checkbox id="login-alerts" checked={security.loginAlerts} onCheckedChange={(v: boolean) => setSecurity(s => ({ ...s, loginAlerts: v }))} />
+                  <Checkbox id="login-alerts" checked={security.login_alerts} onCheckedChange={(v: boolean) => setSecurity(s => ({ ...s, login_alerts: v }))} />
                   <Label htmlFor="login-alerts">Email me on new logins</Label>
                 </div>
-                <div className="grid md:grid-cols-2 gap-4">
+                 <Button onClick={savePreferences}>Save Security Settings</Button>
+                <div className="grid md:grid-cols-2 gap-4 pt-4 border-t mt-4">
                   <div>
                     <Label>Change Password</Label>
                     <Input type="password" placeholder="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
@@ -303,16 +285,6 @@ const Settings = () => {
                     <Button className="w-full" onClick={updatePassword}>Update Password</Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="data">
-            <Card className="shadow-card">
-              <CardHeader><CardTitle className="text-lg md:text-xl">Data & Export</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <Button variant="outline" onClick={exportData}>Export Settings (JSON)</Button>
-                <div className="text-sm text-muted-foreground">Exports only your settings from this page. Roadmaps and profile data are managed elsewhere.</div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -337,7 +309,7 @@ const Settings = () => {
                 </div>
                 <div className="p-4 border rounded-md">
                   <h3 className="font-semibold mb-2">Delete Account</h3>
-                  <p className="text-sm text-muted-foreground mb-3">This will permanently delete your account and remove all your roadmaps. This action cannot be undone.</p>
+                  <p className="text-sm text-muted-foreground mb-3">This will permanently delete your account and remove all your data. This action cannot be undone.</p>
                   <Button variant="destructive" onClick={deleteAccount}>Delete Account</Button>
                 </div>
                 <div className="p-4 border rounded-md">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,106 +14,68 @@ import {
   Share2, 
   Bookmark, 
   Play,
-  ExternalLink,
   TrendingUp,
-  Clock,
   Users,
   Plus,
   FileText
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
-import { useNotifications } from "@/hooks/useNotifications";
+import { useInfiniteQuery, useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { Tables } from "@/integrations/supabase/types";
 
-type DbPost = {
-  id: string;
-  user_id: string;
-  title: string;
-  content: string | null;
-  category: string | null;
-  tags: string[] | null;
-  created_at: string;
-  updated_at: string;
-};
-
-type Profile = {
-  user_id: string;
-  full_name: string | null;
-  title: string | null;
-  avatar_url: string | null;
-};
-
-type FeedPost = {
-  id: string;
-  author: {
-    name: string;
-    title: string;
-    avatar: string;
-  };
-  content: {
-    type: "article";
-    title: string;
-    description: string;
-    category: string;
-    readTime?: string;
-  };
-  engagement: {
-    likes: number;
-    comments: number;
-    shares: number;
-  };
-  timestamp: string;
+type Post = Tables<'posts'>;
+type Profile = Tables<'profiles'>;
+type PostWithProfile = Post & { 
+  profiles: Pick<Profile, 'full_name' | 'title' | 'avatar_url'> | null 
+  likes_count: number;
+  comments_count: number;
 };
 
 const Home = () => {
-  const [commentDialog, setCommentDialog] = useState<{ open: boolean; post: FeedPost | null }>({ open: false, post: null });
-  const [shareDialog, setShareDialog] = useState<{ open: boolean; post: FeedPost | null }>({ open: false, post: null });
-  const [currentComments, setCurrentComments] = useState<any[]>([]);
-
-  const navigate = useNavigate();
+  const [commentDialogOpen, setCommentDialogOpen] = useState<{ open: boolean; postId: string | null }>({ open: false, postId: null });
+  const [shareDialogOpen, setShareDialogOpen] = useState<{ open: boolean; post: PostWithProfile | null }>({ open: false, post: null });
+  
   const { toast } = useToast();
   const { user } = useAuth();
-
   const queryClient = useQueryClient();
 
-  const likesKey = `likes:${user?.id || 'guest'}`;
-  const bookmarksKey = `bookmarks:${user?.id || 'guest'}`;
-  const savedPostsKey = `savedPosts:${user?.id || 'guest'}`;
-
-  const { data: likedPostsData = new Set(), isLoading: isLoadingLikes } = useQuery({
+  const { data: likedPosts = new Set<string>(), } = useQuery({
     queryKey: ['userLikes', user?.id],
     queryFn: async () => {
-      if (user?.id) {
-        const { data } = await supabase.from('likes').select('post_id').eq('user_id', user.id);
-        return new Set((data || []).map((r: any) => r.post_id));
-      } else {
-        const localLikes = JSON.parse(localStorage.getItem(likesKey) || '[]');
-        return new Set(localLikes);
-      }
+      if (!user?.id) return new Set<string>();
+      const { data, error } = await supabase.from('likes').select('post_id').eq('user_id', user.id);
+      if (error) throw error;
+      return new Set((data || []).map((r) => r.post_id));
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    enabled: !!user, // Only fetch if user is defined
+    enabled: !!user,
   });
 
-  const { data: bookmarkedPostsData = new Set(), isLoading: isLoadingBookmarks } = useQuery({
+  const { data: bookmarkedPosts = new Set<string>(), } = useQuery({
     queryKey: ['userBookmarks', user?.id],
     queryFn: async () => {
-      if (user?.id) {
-        const { data } = await supabase.from('bookmarks').select('post_id').eq('user_id', user.id);
-        return new Set((data || []).map((r: any) => r.post_id));
-      } else {
-        const localBookmarks = JSON.parse(localStorage.getItem(bookmarksKey) || '[]');
-        return new Set(localBookmarks);
-      }
+      if (!user?.id) return new Set<string>();
+      const { data, error } = await supabase.from('bookmarks').select('post_id').eq('user_id', user.id);
+      if (error) throw error;
+      return new Set((data || []).map((r) => r.post_id));
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    enabled: !!user, // Only fetch if user is defined
+    enabled: !!user,
   });
 
-  const likedPosts = likedPostsData as Set<string>;
-  const bookmarkedPosts = bookmarkedPostsData as Set<string>;
+  const { data: commentsData } = useQuery({
+    queryKey: ['postComments', commentDialogOpen.postId],
+    queryFn: async () => {
+        if (!commentDialogOpen.postId) return [];
+    const { data, error } = await supabase
+      .from('comments')
+      .select('*, profile:profiles!user_id(full_name, avatar_url)')
+      .eq('post_id', commentDialogOpen.postId)
+      .order('created_at', { ascending: true });
+        if (error) throw error;
+        return data;
+    },
+    enabled: !!commentDialogOpen.postId,
+  });
 
   const pageSize = 10;
 
@@ -121,67 +83,40 @@ const Home = () => {
     const from = pageParam * pageSize;
     const to = from + pageSize - 1;
 
-    const { data: posts, error } = await supabase
+    const { data, error } = await supabase
       .from("posts")
-      .select("id,user_id,title,content,category,tags,created_at,updated_at")
+      .select("*, profiles(full_name, title, avatar_url)")
       .order("created_at", { ascending: false })
       .range(from, to);
 
-    if (error) {
-      throw new Error("Failed to load posts: " + error.message);
-    }
+    if (error) throw new Error("Failed to load posts: " + error.message);
+    
+    const posts = data as PostWithProfile[];
 
-    const userIds = Array.from(new Set((posts || []).map(p => p.user_id)));
-    const { data: profiles, error: profilesError } = await supabase
-      .from("profiles")
-      .select("user_id,full_name,title,avatar_url")
-      .in("user_id", userIds);
+    const postIds = posts.map(p => p.id);
 
-    if (profilesError) {
-      toast({ title: "Failed to load profiles", variant: "destructive" });
-    }
+    const [{ data: likesData }, { data: commentsData }] = await Promise.all([
+        supabase.from('likes').select('post_id, user_id').in('post_id', postIds),
+        supabase.from('comments').select('post_id, user_id').in('post_id', postIds)
+    ]);
 
-    const profileByUserId = new Map<string, Profile>();
-    (profiles || []).forEach(pr => profileByUserId.set(pr.user_id, pr as Profile));
+    const likesByPost = (likesData || []).reduce((acc, like) => {
+        acc[like.post_id] = (acc[like.post_id] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
 
-    const commentCounts = new Map<string, number>();
-    const likeCounts = new Map<string, number>();
-    await Promise.all(
-      (posts || []).map(async (p) => {
-        const [{ count: cCount }, { count: lCount }] = await Promise.all([
-          supabase.from("comments").select("id", { count: "exact", head: true }).eq("post_id", p.id),
-          supabase.from("likes").select("id", { count: "exact", head: true }).eq("post_id", p.id),
-        ]);
-        commentCounts.set(p.id, cCount || 0);
-        likeCounts.set(p.id, lCount || 0);
-      })
-    );
+    const commentsByPost = (commentsData || []).reduce((acc, comment) => {
+        acc[comment.post_id] = (acc[comment.post_id] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
 
-    const mapped: FeedPost[] = (posts || []).map((p: DbPost) => {
-      const prof = profileByUserId.get(p.user_id);
-      return {
-        id: p.id,
-        author: {
-          name: prof?.full_name || "Anonymous",
-          title: prof?.title || "Learner",
-          avatar: prof?.avatar_url || "/placeholder.svg",
-        },
-        content: {
-          type: "article",
-          title: p.title,
-          description: p.content || "",
-          category: p.category || "General",
-        },
-        engagement: {
-          likes: likeCounts.get(p.id) || 0,
-          comments: commentCounts.get(p.id) || 0,
-          shares: 0,
-        },
-        timestamp: new Date(p.created_at).toLocaleString(),
-      };
-    });
+    const postsWithCounts = posts.map(p => ({
+        ...p,
+        likes_count: likesByPost[p.id] || 0,
+        comments_count: commentsByPost[p.id] || 0,
+    }));
 
-    return { posts: mapped, nextPage: (posts || []).length === pageSize ? pageParam + 1 : undefined };
+    return { posts: postsWithCounts, nextPage: posts.length === pageSize ? pageParam + 1 : undefined };
   };
 
   const {
@@ -190,273 +125,111 @@ const Home = () => {
     hasNextPage,
     isFetchingNextPage,
     isLoading: isLoadingPosts,
-    isError: isErrorPosts,
-    error: postsError,
   } = useInfiniteQuery({
     queryKey: ['feedPosts'],
     queryFn: fetchPosts,
     getNextPageParam: (lastPage) => lastPage.nextPage,
+    initialPageParam: 0,
     staleTime: 60 * 1000, // 1 minute
   });
 
   const feed = useMemo(() => data?.pages.flatMap(page => page.posts) || [], [data]);
 
-  useEffect(() => {
-    const loadReactions = async () => {
-      try {
-        if (user?.id) {
-          const [{ data: likesData }, { data: bmData }] = await Promise.all([
-            supabase.from('likes').select('post_id').eq('user_id', user.id),
-            supabase.from('bookmarks').select('post_id').eq('user_id', user.id),
-          ]);
-          // setLikedPosts(new Set((likesData || []).map((r: any) => r.post_id)));
-          // setBookmarkedPosts(new Set((bmData || []).map((r: any) => r.post_id)));
-        } else {
-          const likeIds: string[] = JSON.parse(localStorage.getItem(likesKey) || '[]');
-          const bmIds: string[] = JSON.parse(localStorage.getItem(bookmarksKey) || '[]');
-          // setLikedPosts(new Set(likeIds));
-          // setBookmarkedPosts(new Set(bmIds));
-        }
-      } catch {
-        try {
-          const likeIds: string[] = JSON.parse(localStorage.getItem(likesKey) || '[]');
-          const bmIds: string[] = JSON.parse(localStorage.getItem(bookmarksKey) || '[]');
-          // setLikedPosts(new Set(likeIds));
-          // setBookmarkedPosts(new Set(bmIds));
-        } catch (error) {
-          console.warn('Failed to load reactions:', error);
-        }
-      }
-    };
-    loadReactions();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
-
-  const toggleLike = async (postId: string) => {
-    if (!user) return;
-    const hasLiked = likedPosts.has(postId);
-    
-    // Optimistic update handled by react-query cache invalidation
-    queryClient.setQueryData(['userLikes', user.id], (old: Set<string> | undefined) => {
-      const newSet = new Set(old);
-      if (hasLiked) newSet.delete(postId);
-      else newSet.add(postId);
-      return newSet;
-    });
-    // Optimistically update the like count on the post itself
-    queryClient.setQueriesData(['feedPosts'], (old: any) => {
-      if (!old) return old;
-      return { 
-        ...old,
-        pages: old.pages.map((page: any) => ({ 
-          ...page,
-          posts: page.posts.map((post: any) => 
-            post.id === postId ? { 
-              ...post,
-              engagement: { ...post.engagement, likes: post.engagement.likes + (hasLiked ? -1 : 1) }
-            } : post
-          )
-        }))
-      };
-    });
-
-    try {
+  const likeMutation = useMutation({
+    mutationFn: async ({ postId, hasLiked }: { postId: string, hasLiked: boolean }) => {
+      if (!user) throw new Error("User not authenticated");
       if (hasLiked) {
-        await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id);
+        await supabase.from('likes').delete().match({ post_id: postId, user_id: user.id });
       } else {
         await supabase.from('likes').insert({ post_id: postId, user_id: user.id });
-        // Fetch post owner and current user's display name to send a notification
-        const { data: postData } = await supabase
-          .from('posts')
-          .select('user_id')
-          .eq('id', postId)
-          .single();
-
-        const { data: likerProfile } = await supabase
-          .from('profiles')
-          .select('display_name')
-          .eq('id', user.id)
-          .single();
-
-        if (postData?.user_id && postData.user_id !== user.id) {
-          await supabase.from('notifications').insert({
-            user_id: postData.user_id,
-            type: 'post_like',
-            title: `${likerProfile?.display_name || 'Someone'} liked your post!`,
-            body: `Your post "${feed.find(p => p.id === postId)?.content.title || ''}" was liked by ${likerProfile?.display_name || 'Someone'}.`,
-            data: { postId, likerId: user.id, likerName: likerProfile?.display_name || 'Someone' },
-          });
-        }
       }
-      // Invalidate query to refetch latest likes
-      queryClient.invalidateQueries(['userLikes', user.id]);
-      // Invalidate feed to ensure like counts are accurate if not optimistically updated everywhere
-      queryClient.invalidateQueries(['feedPosts']);
-    } catch (e) {
-      // Revert on failure
-      queryClient.setQueryData(['userLikes', user.id], (old: Set<string> | undefined) => {
-        const newSet = new Set(old);
-        if (hasLiked) newSet.add(postId);
-        else newSet.delete(postId);
-        return newSet;
-      });
-      // Revert optimistic update for like count on the post itself
-      queryClient.setQueriesData(['feedPosts'], (old: any) => {
-        if (!old) return old;
-        return { 
-          ...old,
-          pages: old.pages.map((page: any) => ({ 
-            ...page,
-            posts: page.posts.map((post: any) => 
-              post.id === postId ? { 
-                ...post,
-                engagement: { ...post.engagement, likes: post.engagement.likes + (hasLiked ? 1 : -1) }
-              } : post
-            )
-          }))
-        };
-      });
+      return { postId, hasLiked };
+    },
+    onMutate: async ({ postId, hasLiked }) => {
+        await queryClient.cancelQueries({ queryKey: ['feedPosts'] });
+        const previousFeed = queryClient.getQueryData(['feedPosts']);
+        queryClient.setQueryData(['feedPosts'], (oldData: any) => {
+            const newData = { ...oldData };
+            newData.pages = newData.pages.map((page: any) => ({
+                ...page,
+                posts: page.posts.map((p: any) => {
+                    if (p.id === postId) {
+                        return { ...p, likes_count: p.likes_count + (hasLiked ? -1 : 1) };
+                    }
+                    return p;
+                })
+            }));
+            return newData;
+        });
+        return { previousFeed };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousFeed) {
+        queryClient.setQueryData(['feedPosts'], context.previousFeed);
+      }
       toast({ title: "Failed to update like", variant: "destructive" });
-    }
-  };
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['feedPosts'] });
+      queryClient.invalidateQueries({ queryKey: ['userLikes', user?.id] });
+    },
+  });
 
-  const toggleBookmark = async (postId: string) => {
-    if (!user) return;
-    const hasBookmarked = bookmarkedPosts.has(postId);
-    
-    // Optimistic update
-    // setBookmarkedPosts(prev => {
-    //   const s = new Set(prev);
-    //   hasBookmarked ? s.delete(postId) : s.add(postId);
-    //   return s;
-    // });
-    // Sync saved posts list in localStorage for SavedPosts page
-    // setFeed(prev => {
-    //   const post = prev.find(p => p.id === postId);
-    //   if (!post) return prev;
-    //   try {
-    //     const saved: any[] = JSON.parse(localStorage.getItem(savedPostsKey) || '[]');
-    //     if (hasBookmarked) {
-    //       const next = saved.filter(sp => sp.id !== postId);
-    //       localStorage.setItem(savedPostsKey, JSON.stringify(next));
-    //     } else {
-    //       const savedItem = {
-    //         id: post.id,
-    //         title: post.content.title,
-    //         content: post.content.description,
-    //         category: post.content.category,
-    //         tags: [],
-    //         created_at: new Date(post.timestamp).toISOString(),
-    //       };
-    //       const next = [savedItem, ...saved.filter(sp => sp.id !== postId)];
-    //       localStorage.setItem(savedPostsKey, JSON.stringify(next));
-    //     }
-    //   } catch {}
-    //   return prev;
-    // });
-
-    try {
+  const bookmarkMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      if (!user) throw new Error("User not authenticated");
+      const hasBookmarked = bookmarkedPosts.has(postId);
       if (hasBookmarked) {
-        await supabase.from('bookmarks').delete().eq('post_id', postId).eq('user_id', user.id);
+        await supabase.from('bookmarks').delete().match({ post_id: postId, user_id: user.id });
         toast({ title: "Removed from saved posts" });
       } else {
         await supabase.from('bookmarks').insert({ post_id: postId, user_id: user.id });
         toast({ title: "Added to saved posts" });
       }
-      // Invalidate query to refetch latest bookmarks
-      queryClient.invalidateQueries(['userBookmarks', user.id]);
-    } catch (e) {
-      // Revert on failure
-      // setBookmarkedPosts(prev => {
-      //   const s = new Set(prev);
-      //   hasBookmarked ? s.add(postId) : s.delete(postId);
-      //   return s;
-      // });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userBookmarks', user?.id] });
+    },
+    onError: () => {
       toast({ title: "Failed to update bookmark", variant: "destructive" });
-    }
-  };
+    },
+  });
 
-  const openComments = async (post: FeedPost) => {
-    // Fetch real comments for the post
-    const { data, error } = await supabase
-      .from("comments")
-      .select("id, content, created_at, user_id")
-      .eq("post_id", post.id)
-      .order("created_at", { ascending: false });
-    if (error) {
-      toast({ title: "Failed to load comments", variant: "destructive" });
-      setCurrentComments([]);
-    } else {
-      setCurrentComments(
-        (data || []).map((c) => ({
-          id: c.id,
-          author: "User",
-          avatar: "/placeholder.svg",
-          content: c.content,
-          timestamp: new Date(c.created_at).toLocaleString(),
-          likes: 0,
-        }))
-      );
-    }
-    setCommentDialog({ open: true, post });
-  };
-
-  const openShare = (post: any) => {
-    setShareDialog({ open: true, post });
-  };
-
-  const handleExternalLink = (post: any) => {
-    // Simulate opening external content
-    window.open('#', '_blank');
-    toast({ title: "Opening content..." });
-  };
-
-  const handleAuthorClick = (author: any) => {
-    // Navigate to author profile
-    navigate('/profile');
-    toast({ title: `Viewing ${author.name}'s profile` });
-  };
-
-  const renderContent = (raw: string) => {
+  const renderContent = (raw: string | null) => {
     if (!raw) return null;
-    // Split by double newlines to form blocks
-    const blocks = raw.split(/\n\n+/);
+    const blocks = raw.split(/\n\n+/).slice(0, 3);
     return (
       <div className="space-y-3">
         {blocks.map((block, idx) => {
-          // Markdown image pattern ![alt](url)
           const imgMatch = block.match(/!\[[^\]]*\]\(([^)]+)\)/);
           if (imgMatch) {
             const url = imgMatch[1];
             if (url.startsWith('data:image') || url.startsWith('http')) {
               return (
                 <div key={idx} className="rounded-lg overflow-hidden border">
-                  <img src={url} alt="post" className="w-full h-auto object-contain" />
+                  <img src={url} alt="post" className="w-full h-auto object-contain max-h-96" />
                 </div>
               );
             }
           }
-          // If block looks like a bare data URL image
           if (block.startsWith('data:image')) {
             return (
               <div key={idx} className="rounded-lg overflow-hidden border">
-                <img src={block} alt="post" className="w-full h-auto object-contain" />
+                <img src={block} alt="post" className="w-full h-auto object-contain max-h-96" />
               </div>
             );
           }
-          // File link (basic): render as link with icon if it looks like a URL
           const urlMatch = block.match(/https?:\/\/\S+/);
           if (urlMatch) {
             const url = urlMatch[0];
             return (
-              <a key={idx} href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline text-sm">
+              <a key={idx} href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline text-sm break-all">
                 <FileText className="h-4 w-4" />
                 <span className="break-all">{url}</span>
               </a>
             );
           }
-          // Fallback paragraph
-          return <p key={idx} className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">{block}</p>;
+          return <p key={idx} className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap break-words">{block.length > 300 ? block.slice(0, 300) + '…' : block}</p>;
         })}
       </div>
     );
@@ -464,219 +237,155 @@ const Home = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-4 md:py-6 max-w-2xl">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 container mx-auto px-4 py-6">
+        <aside className="md:col-span-3 space-y-6">
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="font-semibold mb-4">My Roadmaps</h3>
+              <div className="space-y-3">
+                <Link to="/my-roadmaps" className="flex items-center justify-between text-sm hover:text-primary">
+                  <span>🚀 My Learning Paths</span>
+                  <Badge variant="secondary">3</Badge>
+                </Link>
+                <Link to="/my-roadmaps" className="flex items-center justify-between text-sm hover:text-primary">
+                  <span>💡 AI Generated</span>
+                  <Badge variant="secondary">1</Badge>
+                </Link>
+              </div>
+              <Link to="/create-roadmap">
+                <Button className="w-full mt-4" size="sm"><Plus className="h-4 w-4 mr-2" />Create Roadmap</Button>
+              </Link>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="font-semibold mb-4">My Communities</h3>
+              <div className="space-y-3">
+                <Link to="/my-communities" className="flex items-center gap-3 text-sm hover:text-primary">
+                  <Avatar className="h-8 w-8"><AvatarImage src="/placeholder.svg" /><AvatarFallback>R</AvatarFallback></Avatar>
+                  <span>React Developers</span>
+                </Link>
+                <Link to="/my-communities" className="flex items-center gap-3 text-sm hover:text-primary">
+                  <Avatar className="h-8 w-8"><AvatarImage src="/placeholder.svg" /><AvatarFallback>V</AvatarFallback></Avatar>
+                  <span>Vite Enthusiasts</span>
+                </Link>
+              </div>
+              <Link to="/communities">
+                <Button variant="outline" className="w-full mt-4" size="sm"><Users className="h-4 w-4 mr-2" />Explore Communities</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </aside>
 
-        {/* Quick Access */}
-        <Card className="mb-4 md:mb-6 shadow-card">
-          <CardContent className="p-3 md:p-4">
-            <div className="flex space-x-4 overflow-x-auto pb-2">
-              <Link to="/explore" className="flex-shrink-0 text-center">
-                <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mb-2">
-                  <TrendingUp className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-xs text-muted-foreground">Trending</span>
-              </Link>
-              <Link to="/new-videos" className="flex-shrink-0 text-center">
-                <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mb-2">
-                  <Play className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-xs text-muted-foreground">New Videos</span>
-              </Link>
-              <Link to="/communities" className="flex-shrink-0 text-center">
-                <div className="w-16 h-16 bg-success rounded-full flex items-center justify-center mb-2">
-                  <Users className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-xs text-muted-foreground">Communities</span>
-              </Link>
-              <Link to="/create-post" className="flex-shrink-0 text-center">
-                <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mb-2">
-                  <Plus className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-xs text-muted-foreground">Create Post</span>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Feed */}
-        <div className="space-y-4 md:space-y-6">
-          {isLoadingPosts || isLoadingLikes || isLoadingBookmarks ? (
-            <div className="grid gap-4">
-              {[...Array(pageSize)].map((_, i) => (
-                <Card key={i} className="shadow-card animate-pulse">
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="h-10 w-10 bg-muted rounded-full"></div>
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-muted rounded w-3/4"></div>
-                        <div className="h-3 bg-muted rounded w-1/2"></div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-4 bg-muted rounded"></div>
-                      <div className="h-4 bg-muted rounded w-5/6"></div>
-                    </div>
-                    <div className="flex items-center justify-between pt-2">
-                      <div className="h-4 bg-muted rounded w-1/4"></div>
-                      <div className="h-4 bg-muted rounded w-1/6"></div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : isErrorPosts ? (
-            <div className="text-center py-8 text-red-500">
-              Failed to load posts: {postsError?.message || "Unknown error"}
-              <Button onClick={() => window.location.reload()} className="ml-2">Retry</Button>
-            </div>
+        <main className="md:col-span-6 space-y-6">
+          {isLoadingPosts ? (
+            <div className="text-center text-muted-foreground">Loading feed...</div>
           ) : (
             feed.map((post) => (
-              <Card key={post.id} className="shadow-card hover:shadow-elevated transition-all duration-300 animate-fade-in">
-                <CardContent className="p-3 md:p-0">
-                  {/* Author Header */}
-                  <div className="flex items-center justify-between p-4 pb-3">
-                    <div 
-                      className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={() => handleAuthorClick(post.author)}
-                    >
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={post.author.avatar} />
-                        <AvatarFallback>
-                          {post.author.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold text-sm">{post.author.name}</p>
-                        <p className="text-xs text-muted-foreground">{post.author.title}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="secondary" className="text-xs">
-                        {post.content.category}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">{post.timestamp}</span>
+              <Card key={post.id} className="shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-center mb-4">
+                    <Avatar className="h-10 w-10 mr-4">
+                      <AvatarImage src={post.profiles?.avatar_url || undefined} />
+                      <AvatarFallback>{post.profiles?.full_name?.[0] || 'A'}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h4 className="font-semibold">{post.profiles?.full_name || 'Anonymous'}</h4>
+                      <p className="text-sm text-muted-foreground">{post.profiles?.title || 'Learner'} • {new Date(post.created_at).toLocaleDateString()}</p>
                     </div>
                   </div>
-
-                  {/* Content */}
-                  <div className="px-0 md:px-4 pb-2 md:pb-3">
-                    <h3 className="font-semibold text-base md:text-lg mb-1 md:mb-2 leading-tight">
-                      {post.content.title}
-                    </h3>
-                    {renderContent(post.content.description)}
+                  <h3 className="text-xl font-bold mb-2">{post.title}</h3>
+                  <div className="mb-4">{renderContent(post.content)}</div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <Badge variant="secondary">{post.category || 'General'}</Badge>
+                    {(post.tags || []).map((tag, i) => <Badge key={i} variant="outline">{tag}</Badge>)}
                   </div>
-
-                  {/* Optional read time placeholder */}
-                  {post.content.readTime && (
-                    <div className="px-4 pb-3">
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4 mr-1" />
-                        <span>{post.content.readTime}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Engagement Actions */}
-                  <div className="flex items-center justify-between px-2 md:px-4 py-2 md:py-3 border-t">
-                    <div className="flex items-center space-x-6">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={`flex items-center space-x-2 ${
-                          likedPosts.has(post.id) ? "text-red-500" : ""
-                        }`}
-                        onClick={() => toggleLike(post.id)}
-                      >
-                        <Heart
-                          className={`h-4 w-4 ${likedPosts.has(post.id) ? "fill-current" : ""}`}
-                        />
-                        <span className="text-sm">{post.engagement.likes + (likedPosts.has(post.id) ? 1 : 0)}</span>
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <div className="flex items-center gap-6">
+                      <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={() => likeMutation.mutate({ postId: post.id, hasLiked: likedPosts.has(post.id) })}>
+                        <Heart className={`h-5 w-5 ${likedPosts.has(post.id) ? 'text-red-500 fill-current' : ''}`} />
+                        <span>{post.likes_count}</span>
                       </Button>
-
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="flex items-center space-x-2"
-                        onClick={() => openComments(post)}
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                        <span className="text-sm">{post.engagement.comments}</span>
+                      <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={() => setCommentDialogOpen({ open: true, postId: post.id })}>
+                        <MessageCircle className="h-5 w-5" />
+                        <span>{post.comments_count}</span>
                       </Button>
-
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="flex items-center space-x-2"
-                        onClick={() => openShare(post)}
-                      >
-                        <Share2 className="h-4 w-4" />
-                        <span className="text-sm">{post.engagement.shares}</span>
+                      <Button variant="ghost" size="sm" onClick={() => setShareDialogOpen({ open: true, post })}>
+                        <Share2 className="h-5 w-5" />
                       </Button>
                     </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={bookmarkedPosts.has(post.id) ? "text-primary" : ""}
-                        onClick={() => toggleBookmark(post.id)}
-                      >
-                        <Bookmark
-                          className={`h-4 w-4 ${bookmarkedPosts.has(post.id) ? "fill-current" : ""}`}
-                        />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleExternalLink(post)}
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => bookmarkMutation.mutate(post.id)}>
+                      <Bookmark className={`h-5 w-5 ${bookmarkedPosts.has(post.id) ? 'text-blue-500 fill-current' : ''}`} />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
             ))
           )}
-
-          {/* Load More */}
-          <div className="text-center py-6 md:py-8">
-            <Button 
-              variant="outline" 
-              className="w-full max-w-sm"
-              onClick={() => fetchNextPage()}
-              disabled={!hasNextPage || isFetchingNextPage}
-            >
-              {isFetchingNextPage ? "Loading more..." : hasNextPage ? "Load More" : "No more posts"}
+          {hasNextPage && (
+            <Button onClick={() => fetchNextPage()} disabled={isFetchingNextPage} className="w-full">
+              {isFetchingNextPage ? 'Loading more...' : 'Load More'}
             </Button>
-          </div>
+          )}
+        </main>
 
-          {/* Comment Dialog */}
-          <CommentDialog
-            open={commentDialog.open}
-            onOpenChange={(open) => setCommentDialog({ open, post: null })}
-            postTitle={commentDialog.post?.content?.title || ""}
-            comments={currentComments}
-            postId={commentDialog.post?.id || ""}
-            onCommentAdded={() => {
-              // Refresh comment count for that post
-              if (commentDialog.post) {
-                setFeed(prev => prev.map(p => p.id === commentDialog.post!.id ? {
-                  ...p,
-                  engagement: { ...p.engagement, comments: p.engagement.comments + 1 }
-                } : p));
-              }
-            }}
-          />
-
-          {/* Share Dialog */}
-          <ShareDialog
-            open={shareDialog.open}
-            onOpenChange={(open) => setShareDialog({ open, post: null })}
-            title={shareDialog.post?.content?.title || ""}
-          />
-        </div>
+        <aside className="md:col-span-3 space-y-6">
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="font-semibold mb-4">Trending Topics</h3>
+              <div className="space-y-3">
+                <Link to="/explore?q=ai" className="flex items-center gap-2 text-sm hover:text-primary"><TrendingUp className="h-4 w-4" /> AI & Machine Learning</Link>
+                <Link to="/explore?q=react19" className="flex items-center gap-2 text-sm hover:text-primary"><TrendingUp className="h-4 w-4" /> React 19 Features</Link>
+                <Link to="/explore?q=serverless" className="flex items-center gap-2 text-sm hover:text-primary"><TrendingUp className="h-4 w-4" /> Serverless GPUs</Link>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="font-semibold mb-4">New Videos</h3>
+              <div className="space-y-4">
+                <Link to="/videos/1" className="flex items-start gap-3 group">
+                  <div className="relative">
+                    <img src="/placeholder.svg" alt="Video thumbnail" className="w-24 h-14 rounded-md object-cover" />
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                      <Play className="h-6 w-6 text-white" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm leading-snug group-hover:text-primary">Full-stack Next.js 14 Tutorial</p>
+                    <p className="text-xs text-muted-foreground mt-1">The Net Ninja</p>
+                  </div>
+                </Link>
+              </div>
+              <Link to="/new-videos">
+                <Button variant="outline" size="sm" className="w-full mt-4">View All Videos</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </aside>
       </div>
+      {commentDialogOpen.open && commentDialogOpen.postId && (
+        <CommentDialog
+          isOpen={commentDialogOpen.open}
+          onClose={() => setCommentDialogOpen({ open: false, postId: null })}
+          roadmapId={commentDialogOpen.postId}
+          comments={commentsData?.map(c => ({
+            id: c.id,
+            author: (c.profile as any)?.full_name || 'Anonymous',
+            avatar: (c.profile as any)?.avatar_url,
+            content: c.content,
+            timestamp: new Date(c.created_at).toISOString(),
+            likes: 0, // Placeholder
+          })) || []}
+        />
+      )}
+      {shareDialogOpen.open && shareDialogOpen.post && (
+        <ShareDialog
+          open={shareDialogOpen.open}
+          onOpenChange={(open) => setShareDialogOpen({ open, post: open ? shareDialogOpen.post : null })}
+          postTitle={shareDialogOpen.post.title}
+        />
+      )}
     </Layout>
   );
 };
